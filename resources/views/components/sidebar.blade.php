@@ -20,11 +20,13 @@
             <span>Módulos</span>
         </h6>
         <ul class="nav flex-column mb-auto">
-            <li class="nav-item">
-                <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
-                    Companies <span class="badge bg-secondary ms-1">Próximamente</span>
-                </a>
-            </li>
+            @if(auth()->check() && auth()->user()->role === 'super_admin')
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('companies.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('companies.index') }}">
+                        Companies
+                    </a>
+                </li>
+            @endif
             <li class="nav-item">
                 <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
                     Vehicles <span class="badge bg-secondary ms-1">Próximamente</span>
