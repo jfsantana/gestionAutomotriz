@@ -79,7 +79,8 @@ Route::middleware('auth')->group(function () {
             // Flujo contextual de vehículos por cliente
             Route::get('customers/{customer}/vehicles/create', [VehicleController::class, 'createForCustomer'])->name('customers.vehicles.create');
 
-            // Módulo general de Vehículos
+            // Módulo general de Vehículos y Acción de Baja por Privacidad
+            Route::post('vehicles/{vehicle}/decommission', [VehicleController::class, 'decommission'])->name('vehicles.decommission');
             Route::resource('vehicles', VehicleController::class);
         });
 

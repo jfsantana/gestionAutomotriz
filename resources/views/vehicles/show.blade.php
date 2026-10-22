@@ -216,13 +216,23 @@
                 <p class="small text-muted mb-1">Registrado el: <strong>{{ $vehicle->created_at?->format('d/m/Y H:i') ?? '—' }}</strong></p>
                 <p class="small text-muted mb-3">Última actualización: <strong>{{ $vehicle->updated_at?->format('d/m/Y H:i') ?? '—' }}</strong></p>
 
-                <form method="POST" action="{{ route('vehicles.destroy', $vehicle) }}" onsubmit="return confirm('¿Confirmas eliminar este vehículo?');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
-                        Eliminar Vehículo (Soft Delete)
-                    </button>
-                </form>
+                <div class="d-grid gap-2">
+                    {{-- Acción de Baja para venta / traspaso con eliminación de historial --}}
+                    <form method="POST" action="{{ route('vehicles.decommission', $vehicle) }}" onsubmit="return confirm('¿ATENCIÓN: Confirmas dar de baja este vehículo? Al darlo de baja se desvinculará del cliente actual y SE ELIMINARÁ PERMANENTEMENTE TODO SU HISTORIAL para que la placa quede libre para un nuevo registro sin exponer datos previos.');">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-warning text-dark btn-sm w-100 fw-semibold" title="Dar de baja para que otro propietario pueda registrarlo">
+                            &#9888; Dar de Baja (Liberar Placa)
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{{ route('vehicles.destroy', $vehicle) }}" onsubmit="return confirm('¿Confirmas eliminar este vehículo?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                            Eliminar Vehículo (Soft Delete)
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

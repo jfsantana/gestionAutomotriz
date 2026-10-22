@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Vehicles\Models\Vehicle;
-use App\Http\Requests\Vehicles\StoreVehicleRequest;
+use App\Http\Requests\Vehicles\StoreVehiclePrivacyRequest;
 use App\Http\Requests\Vehicles\UpdateVehicleRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class VehicleController extends Controller
@@ -48,9 +49,10 @@ class VehicleController extends Controller
     }
 
     /**
-     * Almacena el vehículo garantizando company_id y customer_id correspondientes.
+     * Almacena el vehículo con estricta política de privacidad por placa.
+     * Si la placa ya existe asignada a un cliente, se bloquea el registro con mensaje neutro.
      */
-    public function store(StoreVehicleRequest $request): RedirectResponse
+    public function store(StoreVehiclePrivacyRequest $request): RedirectResponse
     {
         $currentUser = $request->user();
         $data = $request->validated();
@@ -58,8 +60,23 @@ class VehicleController extends Controller
         $customer = Customer::findOrFail($data['customer_id']);
         $this->authorizeCustomerAccess($currentUser, $customer);
 
-        // Forzar company_id de la empresa del cliente/usuario
-        $data['company_id'] = $customer->company_id;
+        $companyId = $customer->company_id;
+        $data['company_id'] = $companyId;
+        $plate = strtoupper(trim($data['plate']));
+        $data['plate'] = $plate;
+
+        // Regla de privacidad: Verificar si la placa ya se encuentra asignada
+        $existingVehicle = Vehicle::where('company_id', $companyId)
+            ->where('plate', $plate)
+            ->first();
+
+        if ($existingVehicle) {
+            return back()
+                ->withErrors([
+                    'plate' => "Este vehículo ya se encuentra registrado en la plataforma. Por seguridad y privacidad, no puede ser reasignado directamente ni es posible consultar su información por placa. El usuario o cliente que actualmente lo tiene asignado debe darlo de baja desde su cuenta; al realizar la baja, todo el historial previo se eliminará permanentemente para permitir un nuevo registro limpio."
+                ])
+                ->withInput();
+        }
 
         $vehicle = Vehicle::create($data);
 
@@ -112,6 +129,35 @@ class VehicleController extends Controller
         return redirect()
             ->route('customers.show', $vehicle->customer_id)
             ->with('success', "Vehículo '{$vehicle->plate}' ({$vehicle->make} {$vehicle->model}) actualizado correctamente.");
+    }
+
+    /**
+     * Da de baja un vehículo por parte del propietario/empresa actual.
+     * En esta versión de privacidad, la baja elimina por completo el historial operativo
+     * y las órdenes asociadas para permitir que la placa quede libre sin fuga de datos.
+     */
+    public function decommission(Request $request, Vehicle $vehicle): RedirectResponse
+    {
+        $this->authorizeVehicleAccess($request->user(), $vehicle);
+
+        $plate = $vehicle->plate;
+        $customerId = $vehicle->customer_id;
+
+        DB::transaction(function () use ($vehicle) {
+            // Eliminar evidencias fotográficas de sus órdenes
+            $orderIds = $vehicle->maintenanceOrders()->pluck('id');
+            if ($orderIds->isNotEmpty()) {
+                \App\Domain\Maintenance\Models\MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)->delete();
+                \App\Domain\Maintenance\Models\MaintenanceOrder::whereIn('id', $orderIds)->forceDelete();
+            }
+
+            // Eliminar definitivamente el vehículo para que la placa quede libre para nuevo registro limpio
+            $vehicle->forceDelete();
+        });
+
+        return redirect()
+            ->route('customers.show', $customerId)
+            ->with('info', "El vehículo con placa '{$plate}' fue dado de baja exitosamente. Todo su historial previo fue eliminado para garantizar privacidad y la placa ha quedado liberada para un nuevo registro.");
     }
 
     /**
