@@ -29,7 +29,7 @@
                 </p>
                 <hr>
                 <p class="mb-0 small">
-                    Por favor, ponte en contacto con la administración central de <strong>gestionAutomotriz</strong> para renovar o reactivar tu cuenta.
+                    Por favor, ponte en contacto con la administración central de <strong>AutoBitacora</strong> para renovar o reactivar tu cuenta.
                 </p>
             </div>
         </div>

@@ -20,7 +20,7 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Iniciar Sesión');
-        $response->assertSee('gestionAutomotriz');
+        $response->assertSee('AutoBitacora');
     }
 
     /**

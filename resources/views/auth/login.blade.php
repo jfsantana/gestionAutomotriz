@@ -6,7 +6,8 @@
 <div class="card auth-card shadow-lg border-0 bg-white p-4">
     <div class="card-body">
         <div class="text-center mb-4">
-            <h3 class="fw-bold text-dark mb-1">gestionAutomotriz</h3>
+            <img src="{{ asset('images/autobitacoraLogo.png') }}" alt="AutoBitacora" height="58" class="mb-2">
+            <h3 class="fw-bold text-dark mb-1">AutoBitacora</h3>
             <p class="text-muted small">SaaS de Gestión Vehicular &bull; Acceso al Sistema</p>
         </div>
 

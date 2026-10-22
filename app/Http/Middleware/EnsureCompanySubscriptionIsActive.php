@@ -27,8 +27,17 @@ class EnsureCompanySubscriptionIsActive
 
         $subscription = $user->company->currentSubscription;
 
-        // 3. Si no tiene suscripción registrada o no es operable (vencida/suspendida/cancelada)
-        if (! $subscription || ! $subscription->isOperable()) {
+        // 3. Si no tiene suscripción registrada explícita pero el status de la empresa es active o trial
+        if (! $subscription) {
+            if (in_array($user->company->status, ['active', 'trial'], true)) {
+                return $next($request);
+            }
+
+            return redirect()->route('subscription.status');
+        }
+
+        // 4. Si tiene suscripción pero no es operable (vencida/suspendida/cancelada)
+        if (! $subscription->isOperable()) {
             return redirect()->route('subscription.status');
         }
 

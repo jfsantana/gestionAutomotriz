@@ -20,8 +20,8 @@ class DashboardTest extends TestCase
         $response = $this->actingAs($user)->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('gestionAutomotriz');
-        $response->assertSee('Base Técnica del Sistema');
+        $response->assertSee('AutoBitacora');
+        $response->assertSee('Sistema Multiempresa de Gestión y Trazabilidad Automotriz');
         $response->assertSee('Estado de Salud del Sistema');
         $response->assertSee('admin_test');
     }

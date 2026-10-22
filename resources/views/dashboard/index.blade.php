@@ -4,9 +4,12 @@
 
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
-        <h1 class="h3 mb-0">Base Técnica del Sistema</h1>
-        <p class="text-muted mb-0 small">SaaS Multiempresa de Gestión Automotriz - Fase 0: Arquitectura y Cimientos</p>
+    <div class="d-flex align-items-center">
+        <img src="{{ asset('images/autobitacoraLogo.png') }}" alt="AutoBitacora" height="42" class="me-3 rounded shadow-sm bg-white p-1">
+        <div>
+            <h1 class="h3 mb-0 fw-bold text-dark">AutoBitacora <span class="badge bg-primary fs-6">SaaS</span></h1>
+            <p class="text-muted mb-0 small">Sistema Multiempresa de Gestión y Trazabilidad Automotriz</p>
+        </div>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
         <a href="{{ route('health') }}" target="_blank" class="btn btn-sm btn-outline-primary">

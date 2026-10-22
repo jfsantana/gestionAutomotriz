@@ -26,7 +26,7 @@ class SystemHealthService
 
         return [
             'status' => $isHealthy ? 'ok' : 'degraded',
-            'app_name' => config('app.name', 'gestionAutomotriz'),
+            'app_name' => config('app.name', 'AutoBitacora'),
             'timestamp' => now()->toIso8601String(),
             'environment' => config('app.env'),
             'php_version' => PHP_VERSION,
