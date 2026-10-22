@@ -28,25 +28,8 @@
         @enderror
     </div>
 
-    <div class="col-md-4">
-        <label for="default_price" class="form-label fw-semibold">Precio por Defecto ($)</label>
-        <input 
-            type="number" 
-            step="0.01" 
-            min="0"
-            class="form-control @error('default_price') is-invalid @enderror" 
-            id="default_price" 
-            name="default_price" 
-            value="{{ old('default_price', $service->default_price) }}" 
-            placeholder="0.00"
-        >
-        @error('default_price')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
-
-    <div class="col-md-4">
-        <label for="default_interval_days" class="form-label fw-semibold">Intervalo sugerido (Días)</label>
+    <div class="col-md-6">
+        <label for="default_interval_days" class="form-label fw-semibold">Intervalo Sugerido de Control (Días)</label>
         <input 
             type="number" 
             min="1"
@@ -56,14 +39,14 @@
             value="{{ old('default_interval_days', $service->default_interval_days) }}" 
             placeholder="Ej. 90, 180, 365"
         >
-        <div class="form-text">Días estimados para próximo servicio.</div>
+        <div class="form-text">Días estimados recomendados para el próximo control o revisión.</div>
         @error('default_interval_days')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
 
-    <div class="col-md-4">
-        <label for="default_interval_mileage" class="form-label fw-semibold">Intervalo sugerido (Kilómetros)</label>
+    <div class="col-md-6">
+        <label for="default_interval_mileage" class="form-label fw-semibold">Intervalo Sugerido de Control (Kilómetros)</label>
         <input 
             type="number" 
             min="1"
@@ -73,6 +56,11 @@
             value="{{ old('default_interval_mileage', $service->default_interval_mileage) }}" 
             placeholder="Ej. 5000, 10000"
         >
+        <div class="form-text">Kilómetros sugeridos para la próxima revisión técnica.</div>
+        @error('default_interval_mileage')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
         <div class="form-text">Km recomendados para próxima revisión.</div>
         @error('default_interval_mileage')
             <div class="invalid-feedback">{{ $message }}</div>

@@ -123,7 +123,9 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label for="cost" class="form-label fw-semibold">Costo Total ($)</label>
+                    <label for="cost" class="form-label fw-semibold">
+                        Costo Total ($) <small class="text-muted fw-normal">(Opcional)</small>
+                    </label>
                     <input 
                         type="number" 
                         step="0.01" 
@@ -132,6 +134,7 @@
                         id="cost" 
                         name="cost" 
                         value="{{ old('cost', $order->cost) }}" 
+                        placeholder="0.00"
                     >
                     @error('cost')
                         <div class="invalid-feedback">{{ $message }}</div>

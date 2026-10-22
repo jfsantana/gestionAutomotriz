@@ -45,14 +45,12 @@
                     value="{{ $s->id }}" 
                     data-name="{{ $s->name }}"
                     data-type="{{ $s->maintenance_type }}"
-                    data-price="{{ $s->default_price }}"
                     data-days="{{ $s->default_interval_days }}"
                     data-mileage="{{ $s->default_interval_mileage }}"
                     data-desc="{{ $s->description }}"
                     @selected((string)old('service_id', $order->service_id) === (string)$s->id)
                 >
                     {{ $s->name }} [{{ $s->maintenance_type === 'preventive' ? 'Preventivo' : 'Correctivo' }}]
-                    @if($s->default_price) (${{ number_format($s->default_price, 2) }}) @endif
                 </option>
             @endforeach
         </select>
@@ -149,7 +147,9 @@
     </div>
 
     <div class="col-md-4">
-        <label for="cost" class="form-label fw-semibold">Costo Total ($)</label>
+        <label for="cost" class="form-label fw-semibold">
+            Costo Total ($) <small class="text-muted fw-normal">(Opcional)</small>
+        </label>
         <input 
             type="number" 
             step="0.01" 
@@ -160,6 +160,7 @@
             value="{{ old('cost', $order->cost) }}" 
             placeholder="0.00"
         >
+        <div class="form-text">Cálculo según insumos reales (aceite, filtros, etc.).</div>
         @error('cost')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
@@ -308,9 +309,6 @@
                 }
                 const sType = opt.getAttribute('data-type');
                 if (sType) typeSelect.value = sType;
-
-                const price = opt.getAttribute('data-price');
-                if (price && !costInput.value) costInput.value = price;
 
                 const days = parseInt(opt.getAttribute('data-days'), 10);
                 if (days && dateInput.value && !nextDateInput.value) {

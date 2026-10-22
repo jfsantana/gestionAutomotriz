@@ -35,8 +35,7 @@
                         <tr>
                             <th scope="col" class="ps-4">Servicio</th>
                             <th scope="col">Tipo</th>
-                            <th scope="col">Precio Base</th>
-                            <th scope="col">Intervalo Sugerido</th>
+                            <th scope="col">Intervalo Sugerido de Control</th>
                             @if(auth()->user()->role === 'super_admin')
                                 <th scope="col">Empresa</th>
                             @endif
@@ -50,7 +49,7 @@
                                 <td class="ps-4">
                                     <div class="fw-bold text-dark">{{ $item->name }}</div>
                                     @if($item->description)
-                                        <small class="text-muted">{{ Str::limit($item->description, 50) }}</small>
+                                        <small class="text-muted">{{ Str::limit($item->description, 60) }}</small>
                                     @endif
                                 </td>
                                 <td>
@@ -61,19 +60,12 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($item->default_price !== null)
-                                        <strong>${{ number_format($item->default_price, 2) }}</strong>
-                                    @else
-                                        <span class="text-muted">—</span>
-                                    @endif
-                                </td>
-                                <td>
                                     <small class="d-block text-secondary">
                                         {{ $item->default_interval_days ? $item->default_interval_days . ' días' : '' }}
                                         {{ $item->default_interval_days && $item->default_interval_mileage ? ' / ' : '' }}
                                         {{ $item->default_interval_mileage ? number_format($item->default_interval_mileage) . ' km' : '' }}
                                         @if(!$item->default_interval_days && !$item->default_interval_mileage)
-                                            <span class="text-muted">—</span>
+                                            <span class="text-muted">A criterio de uso</span>
                                         @endif
                                     </small>
                                 </td>

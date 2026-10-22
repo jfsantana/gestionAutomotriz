@@ -106,7 +106,6 @@ class MaintenanceAndServicesManagementTest extends TestCase
         $payload = [
             'name' => 'Alineación y Balanceo Computarizado',
             'maintenance_type' => 'preventive',
-            'default_price' => 1800.00,
             'default_interval_days' => 90,
             'default_interval_mileage' => 10000,
             'is_active' => '1',

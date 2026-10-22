@@ -19,7 +19,6 @@ class StoreServiceRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'maintenance_type' => ['required', 'string', Rule::in(['preventive', 'corrective'])],
             'description' => ['nullable', 'string', 'max:1000'],
-            'default_price' => ['nullable', 'numeric', 'min:0'],
             'default_interval_days' => ['nullable', 'integer', 'min:1'],
             'default_interval_mileage' => ['nullable', 'integer', 'min:1'],
             'is_active' => ['nullable', 'boolean'],
