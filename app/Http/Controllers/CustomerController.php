@@ -54,11 +54,14 @@ class CustomerController extends Controller
 
     /**
      * Guarda el cliente y redirige a su ficha para que pueda registrar de inmediato sus vehículos.
+     * Si se marcó 'enable_portal', genera e invita al cliente por correo electrónico.
      */
     public function store(StoreCustomerRequest $request): RedirectResponse
     {
         $currentUser = $request->user();
         $data = $request->validated();
+        $enablePortal = $request->boolean('enable_portal');
+        unset($data['enable_portal']);
 
         if ($currentUser->role === 'company_admin') {
             $data['company_id'] = $currentUser->company_id;
@@ -66,9 +69,14 @@ class CustomerController extends Controller
 
         $customer = Customer::create($data);
 
+        // Si se solicitó acceso al portal y tiene email, disparar invitación
+        if ($enablePortal && $customer->email) {
+            app(\App\Http\Controllers\CustomerInvitationController::class)->send($request, $customer);
+        }
+
         return redirect()
             ->route('customers.show', $customer)
-            ->with('success', "Cliente '{$customer->full_name}' registrado exitosamente. Ahora puedes agregar sus vehículos.");
+            ->with('success', "Cliente '{$customer->full_name}' registrado exitosamente." . ($enablePortal && $customer->email ? " Se ha enviado la invitación de acceso al portal a {$customer->email}." : ""));
     }
 
     /**

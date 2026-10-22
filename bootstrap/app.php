@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'company_admin' => \App\Http\Middleware\RequireCompanyAdminOrSuperAdmin::class,
             'subscription.active' => \App\Http\Middleware\EnsureCompanySubscriptionIsActive::class,
             'policy.accepted' => \App\Http\Middleware\EnsurePolicyAccepted::class,
+            'customer.only' => \App\Http\Middleware\EnsureIsCustomer::class,
         ]);
 
         // Asegurar que EnsurePolicyAccepted se evalúe en todas las rutas web

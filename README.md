@@ -142,3 +142,22 @@ Y luego abrir en el navegador o mediante `curl`:
 Una vez configurado Apache y reiniciados los servicios de WAMP:
 - Visita: `http://gestionautomotriz.local`
 - Visita: `http://gestionautomotriz.local/health`
+
+---
+
+## 6. Portal del Cliente (Flujo de Invitación y Acceso Exclusivo)
+
+El sistema cuenta con un **Portal del Cliente** completamente aislado del menú administrativo del taller.
+
+### Características del Portal:
+1. **Invitación por Correo:** El administrador del taller puede habilitar el acceso al cliente desde el formulario de creación o enviarle la invitación desde la ficha del cliente.
+2. **Activación Segura por Token:** El cliente recibe un correo (vía Gmail SMTP configurado) con enlace firmado único válido por 48 horas para definir su contraseña.
+3. **Inicio de Sesión:** El cliente puede iniciar sesión ingresando su correo electrónico y su contraseña personal.
+4. **Menú Exclusivo del Cliente (`/portal`):**
+   - **Panel / Inicio:** Resumen de sus vehículos, alertas de mantenimiento y últimos servicios.
+   - **Mis Vehículos:** Fichas de sus vehículos con opción de baja voluntaria sin revelar historial previo a terceros.
+   - **Historial de Mantenimiento:** Distinción visual clara entre mantenimientos verificados por el taller y registros propios del cliente.
+   - **Registrar Mantenimiento Propio:** Formulario para asentar mantenimientos manuales (`origen: cliente`, `no verificado por taller`) que actualizan el odómetro del vehículo.
+   - **Mi Cuenta:** Edición de datos de contacto, cambio de contraseña y baja voluntaria de la cuenta.
+5. **Aislamiento Estricto:** Un usuario con rol `customer` no puede acceder a las rutas del taller (`/dashboard`, `/staff`, `/companies`, `/customers`, etc.), recibiendo respuesta `403 Prohibido`.
+

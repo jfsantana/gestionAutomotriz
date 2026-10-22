@@ -23,31 +23,57 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
+        $input = $request->validate([
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
+        $loginValue = $input['username'];
+        $password = $input['password'];
         $remember = $request->boolean('remember');
 
-        if (! Auth::attempt(array_merge($credentials, ['is_active' => true]), $remember)) {
-            // Verificar si el usuario existe pero está inactivo para retroalimentación precisa
-            $userExists = \App\Models\User::where('username', $credentials['username'])->first();
-            if ($userExists && ! $userExists->is_active) {
-                return back()->withErrors([
-                    'username' => 'Tu cuenta se encuentra desactivada. Contacta al superadministrador.',
-                ])->onlyInput('username');
-            }
+        // Permitir autenticarse por username o por email (vital para clientes)
+        $user = \App\Models\User::where('username', $loginValue)
+            ->orWhere('email', $loginValue)
+            ->first();
 
+        if (! $user) {
+            return back()->withErrors([
+                'username' => 'Las credenciales proporcionadas no son válidas.',
+            ])->onlyInput('username');
+        }
+
+        // Validar si el cliente aún no ha activado su cuenta
+        if ($user->role === 'customer' && $user->account_status === 'INVITED') {
+            return back()->withErrors([
+                'username' => 'Tu cuenta aún no ha sido activada. Por favor, revisa el correo de invitación enviado a tu email para crear tu contraseña.',
+            ])->onlyInput('username');
+        }
+
+        if (! $user->is_active || in_array($user->account_status, ['BLOCKED', 'DEACTIVATED'], true)) {
+            return back()->withErrors([
+                'username' => 'Tu cuenta se encuentra desactivada o dada de baja del sistema.',
+            ])->onlyInput('username');
+        }
+
+        $credentials = [
+            'id' => $user->id,
+            'password' => $password,
+        ];
+
+        if (! Auth::attempt($credentials, $remember)) {
             return back()->withErrors([
                 'username' => 'Las credenciales proporcionadas no son válidas.',
             ])->onlyInput('username');
         }
 
         $request->session()->regenerate();
+        $user->update(['last_login_at' => now()]);
 
-        // Actualizar último inicio de sesión
-        $request->user()?->update(['last_login_at' => now()]);
+        // Redirigir según el rol
+        if ($user->role === 'customer') {
+            return redirect()->intended(route('portal.dashboard'));
+        }
 
         return redirect()->intended(route('dashboard'));
     }

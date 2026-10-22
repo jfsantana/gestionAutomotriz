@@ -17,13 +17,14 @@ class PolicyController extends Controller
     {
         $user = $request->user();
         $policy = PlatformPolicy::activePolicy();
+        $targetRoute = $user->role === 'customer' ? route('portal.dashboard') : route('dashboard');
 
         if (! $policy) {
-            return redirect()->route('dashboard');
+            return redirect($targetRoute);
         }
 
         if ($user->hasAcceptedCurrentPolicy()) {
-            return redirect()->route('dashboard');
+            return redirect($targetRoute);
         }
 
         return view('policies.show', compact('policy', 'user'));
@@ -55,8 +56,9 @@ class PolicyController extends Controller
             ]
         );
 
-        return redirect()
-            ->route('dashboard')
+        $targetRoute = $user->role === 'customer' ? route('portal.dashboard') : route('dashboard');
+
+        return redirect($targetRoute)
             ->with('success', 'Has aceptado las Políticas de Uso y Condiciones de la Plataforma (v' . $policy->version . '). Bienvenido a AutoBitacora.');
     }
 }

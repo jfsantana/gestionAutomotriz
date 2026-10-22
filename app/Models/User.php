@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Companies\Models\Company;
+use App\Domain\Companies\Models\Customer;
 use App\Domain\Users\Models\PlatformPolicy;
 use App\Domain\Users\Models\UserPolicyAcceptance;
 use Database\Factories\UserFactory;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'username', 'email', 'password', 'role', 'company_id', 'is_active', 'last_login_at'])]
+#[Fillable(['name', 'username', 'email', 'password', 'role', 'company_id', 'customer_id', 'is_active', 'account_status', 'last_login_at', 'activated_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,6 +33,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'activated_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];
@@ -43,6 +45,22 @@ class User extends Authenticatable
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    /**
+     * Cliente propietario asociado (para rol customer).
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    /**
+     * Determina si el usuario es cliente.
+     */
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer';
     }
 
     /**

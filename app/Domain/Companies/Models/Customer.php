@@ -3,10 +3,12 @@
 namespace App\Domain\Companies\Models;
 
 use App\Domain\Vehicles\Models\Vehicle;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
@@ -59,10 +61,26 @@ class Customer extends Model
     }
 
     /**
-     * Vehículos del cliente.
+     * Vehículos activos del cliente (excluye dados de baja por el cliente).
      */
     public function vehicles(): HasMany
     {
+        return $this->hasMany(Vehicle::class, 'customer_id')->where('customer_status', 'ACTIVE');
+    }
+
+    /**
+     * Todos los vehículos históricos vinculados.
+     */
+    public function allVehicles(): HasMany
+    {
         return $this->hasMany(Vehicle::class, 'customer_id');
+    }
+
+    /**
+     * Usuario de acceso al portal vinculado al cliente.
+     */
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class, 'customer_id');
     }
 }

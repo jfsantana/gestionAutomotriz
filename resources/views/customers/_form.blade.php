@@ -116,6 +116,20 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
+
+    @if(!$customer->exists || !$customer->user)
+        <div class="col-12 pt-2">
+            <div class="form-check form-switch p-3 bg-light rounded border">
+                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="enable_portal" name="enable_portal" value="1" @checked(old('enable_portal'))>
+                <label class="form-check-label fw-bold text-dark" for="enable_portal">
+                    Habilitar acceso al portal del cliente y enviar invitación por correo
+                </label>
+                <div class="form-text ms-4">
+                    Requiere que el cliente tenga un correo electrónico registrado. El sistema enviará un enlace automático para que cree su contraseña.
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">

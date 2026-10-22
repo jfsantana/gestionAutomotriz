@@ -31,6 +31,7 @@ class StoreCustomerRequest extends FormRequest
             'document_number' => ['nullable', 'string', 'max:50'],
             'customer_type' => ['required', 'string', Rule::in(['individual', 'fleet_owner'])],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'enable_portal' => ['nullable', 'boolean'],
         ];
 
         if ($this->user()?->role === 'super_admin') {

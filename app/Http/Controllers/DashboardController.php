@@ -24,8 +24,14 @@ class DashboardController extends Controller
      */
     public function index(Request $request): View
     {
-        $systemHealth = $this->healthService->check();
         $currentUser = $request->user();
+
+        // Si un cliente intenta entrar al dashboard del taller, redirigir a su portal o abortar
+        if ($currentUser && $currentUser->role === 'customer') {
+            abort(403, 'Los clientes no tienen acceso al panel administrativo del taller.');
+        }
+
+        $systemHealth = $this->healthService->check();
 
         $companyId = $currentUser && $currentUser->role !== 'super_admin'
             ? $currentUser->company_id

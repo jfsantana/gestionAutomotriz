@@ -63,6 +63,42 @@
                     <span>{{ $customer->email ?? 'No registrado' }}</span>
                 </div>
 
+                {{-- ESTADO DE ACCESO AL PORTAL DEL CLIENTE --}}
+                <div class="p-3 mb-3 bg-light rounded border">
+                    <small class="text-muted text-uppercase fw-bold d-block mb-1" style="font-size: 0.72rem;">Acceso al Portal del Cliente</small>
+                    @if($customer->user)
+                        @if($customer->user->account_status === 'ACTIVE' && $customer->user->is_active)
+                            <span class="badge bg-success mb-2">&#10003; Activo</span>
+                            <small class="text-muted d-block">Usuario: <code>{{ $customer->user->username }}</code></small>
+                            <small class="text-muted d-block">Activado: {{ $customer->user->activated_at?->format('d/m/Y H:i') ?? '—' }}</small>
+                        @elseif($customer->user->account_status === 'INVITED')
+                            <span class="badge bg-warning text-dark mb-2">&#9203; Invitación Pendiente</span>
+                            <small class="text-muted d-block">Esperando que el cliente cree su contraseña por email.</small>
+                            <form method="POST" action="{{ route('customers.invite', $customer) }}" class="mt-2">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    &#8635; Reenviar Invitación
+                                </button>
+                            </form>
+                        @else
+                            <span class="badge bg-danger mb-2">Desactivado</span>
+                        @endif
+                    @else
+                        @if($customer->email)
+                            <span class="badge bg-secondary mb-2">Sin Acceso</span>
+                            <form method="POST" action="{{ route('customers.invite', $customer) }}" class="mt-2">
+                                @csrf
+                                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+                                    &#9993; Habilitar y Enviar Invitación
+                                </button>
+                            </form>
+                        @else
+                            <span class="badge bg-secondary mb-2">Sin Correo</span>
+                            <small class="text-danger d-block">Agrega un email al cliente para habilitarle acceso al portal.</small>
+                        @endif
+                    @endif
+                </div>
+
                 <div class="mb-3">
                     <small class="text-muted d-block">Empresa / Taller</small>
                     <span>{{ $customer->company?->name ?? '—' }}</span>

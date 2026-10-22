@@ -29,6 +29,10 @@ Route::get('/health', HealthController::class)->name('health');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+    // Activación y Creación de Contraseña del Cliente Invitado (Vía Token de Correo)
+    Route::get('portal/activate/{token}', [\App\Http\Controllers\ClientActivationController::class, 'show'])->name('portal.activate.show');
+    Route::post('portal/activate/{token}', [\App\Http\Controllers\ClientActivationController::class, 'activate'])->name('portal.activate.submit');
 });
 
 // Rutas protegidas (autenticadas)
@@ -78,6 +82,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('services', ServiceController::class)->except(['show', 'destroy']);
 
             // Clientes y Propietarios
+            Route::post('customers/{customer}/invite', [\App\Http\Controllers\CustomerInvitationController::class, 'send'])->name('customers.invite');
             Route::resource('customers', CustomerController::class);
 
             // Flujo contextual de vehículos por cliente
@@ -91,6 +96,32 @@ Route::middleware('auth')->group(function () {
         // Órdenes de Mantenimiento y Recordatorios
         Route::resource('maintenance-orders', MaintenanceOrderController::class);
         Route::get('reminders', [ReminderController::class, 'index'])->name('reminders.index');
+    });
+
+    // ==========================================
+    // PORTAL EXCLUSIVO PARA CLIENTES (Rol: customer)
+    // ==========================================
+    Route::middleware('customer.only')->prefix('portal')->name('portal.')->group(function () {
+        // 1. Inicio / Resumen
+        Route::get('/', [\App\Http\Controllers\Portal\ClientPortalController::class, 'dashboard'])->name('dashboard');
+
+        // 2. Mis Vehículos y Baja Lógica
+        Route::get('vehicles', [\App\Http\Controllers\Portal\ClientPortalController::class, 'vehicles'])->name('vehicles.index');
+        Route::get('vehicles/{vehicle}', [\App\Http\Controllers\Portal\ClientPortalController::class, 'vehicleShow'])->name('vehicles.show');
+        Route::post('vehicles/{vehicle}/decommission', [\App\Http\Controllers\Portal\ClientPortalController::class, 'decommissionVehicle'])->name('vehicles.decommission');
+
+        // 3. Historial de Mantenimientos
+        Route::get('maintenance', [\App\Http\Controllers\Portal\ClientPortalController::class, 'maintenanceHistory'])->name('maintenance.index');
+
+        // 4. Registrar Mantenimiento Propio / Personal
+        Route::get('maintenance/create-personal', [\App\Http\Controllers\Portal\ClientPortalController::class, 'createPersonalMaintenance'])->name('maintenance.create');
+        Route::post('maintenance/create-personal', [\App\Http\Controllers\Portal\ClientPortalController::class, 'storePersonalMaintenance'])->name('maintenance.store');
+
+        // 5. Mi Cuenta y Seguridad
+        Route::get('account', [\App\Http\Controllers\Portal\ClientPortalController::class, 'account'])->name('account');
+        Route::put('account', [\App\Http\Controllers\Portal\ClientPortalController::class, 'updateAccount'])->name('account.update');
+        Route::put('account/password', [\App\Http\Controllers\Portal\ClientPortalController::class, 'updatePassword'])->name('account.password');
+        Route::post('account/deactivate', [\App\Http\Controllers\Portal\ClientPortalController::class, 'deactivateAccount'])->name('account.deactivate');
     });
 });
 
