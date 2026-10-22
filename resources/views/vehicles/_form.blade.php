@@ -132,6 +132,27 @@
     </div>
 
     <div class="col-12">
+        <label for="photo" class="form-label fw-semibold">Fotografía del Vehículo (Opcional)</label>
+        @if($vehicle->photo_path)
+            <div class="mb-2">
+                <img src="{{ asset('storage/' . $vehicle->photo_path) }}" alt="Foto Vehículo" height="80" class="rounded border p-1">
+                <small class="text-muted ms-2">Foto actual registrada</small>
+            </div>
+        @endif
+        <input 
+            type="file" 
+            class="form-control @error('photo') is-invalid @enderror" 
+            id="photo" 
+            name="photo" 
+            accept="image/*"
+        >
+        <div class="form-text">Sube una fotografía del vehículo para su ficha técnica (PNG, JPG, máx 5MB).</div>
+        @error('photo')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-12">
         <label for="notes" class="form-label fw-semibold">Notas / Observaciones del Vehículo</label>
         <textarea 
             class="form-control @error('notes') is-invalid @enderror" 

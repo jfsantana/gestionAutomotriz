@@ -120,7 +120,12 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <div class="fw-bold text-dark">{{ $vehicle->make }} {{ $vehicle->model }}</div>
+                                            <div class="d-flex align-items-center">
+                                                @if($vehicle->photo_path)
+                                                    <img src="{{ asset('storage/' . $vehicle->photo_path) }}" alt="Foto" width="42" height="32" class="rounded me-2 border object-fit-cover shadow-sm">
+                                                @endif
+                                                <div class="fw-bold text-dark">{{ $vehicle->make }} {{ $vehicle->model }}</div>
+                                            </div>
                                         </td>
                                         <td>
                                             {{ $vehicle->year ?? '—' }}

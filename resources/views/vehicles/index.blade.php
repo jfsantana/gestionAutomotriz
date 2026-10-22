@@ -57,8 +57,15 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-dark">{{ $vehicle->make }} {{ $vehicle->model }}</div>
-                                    <small class="text-secondary">{{ $vehicle->fuel_type ? ucfirst($vehicle->fuel_type) : '' }}</small>
+                                    <div class="d-flex align-items-center">
+                                        @if($vehicle->photo_path)
+                                            <img src="{{ asset('storage/' . $vehicle->photo_path) }}" alt="Foto" width="48" height="36" class="rounded me-2 border object-fit-cover shadow-sm">
+                                        @endif
+                                        <div>
+                                            <div class="fw-bold text-dark">{{ $vehicle->make }} {{ $vehicle->model }}</div>
+                                            <small class="text-secondary">{{ $vehicle->fuel_type ? ucfirst($vehicle->fuel_type) : '' }}</small>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     @if($vehicle->customer)

@@ -33,6 +33,10 @@ Route::middleware('guest')->group(function () {
 
 // Rutas protegidas (autenticadas)
 Route::middleware('auth')->group(function () {
+    // Pantalla de Aceptación Obligatoria de Políticas (vía middleware EnsurePolicyAccepted)
+    Route::get('policies/terms-and-conditions', [\App\Http\Controllers\PolicyController::class, 'show'])->name('policy.show');
+    Route::post('policies/accept', [\App\Http\Controllers\PolicyController::class, 'accept'])->name('policy.accept');
+
     Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');

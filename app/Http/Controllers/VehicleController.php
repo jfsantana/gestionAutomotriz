@@ -9,6 +9,7 @@ use App\Http\Requests\Vehicles\UpdateVehicleRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class VehicleController extends Controller
@@ -78,6 +79,10 @@ class VehicleController extends Controller
                 ->withInput();
         }
 
+        if ($request->hasFile('photo')) {
+            $data['photo_path'] = $request->file('photo')->store('vehicles/' . $companyId, 'public');
+        }
+
         $vehicle = Vehicle::create($data);
 
         return redirect()
@@ -123,6 +128,13 @@ class VehicleController extends Controller
 
         // Evitar manipulación de llaves foráneas en actualización
         unset($data['company_id'], $data['customer_id']);
+
+        if ($request->hasFile('photo')) {
+            if ($vehicle->photo_path && Storage::disk('public')->exists($vehicle->photo_path)) {
+                Storage::disk('public')->delete($vehicle->photo_path);
+            }
+            $data['photo_path'] = $request->file('photo')->store('vehicles/' . $vehicle->company_id, 'public');
+        }
 
         $vehicle->update($data);
 

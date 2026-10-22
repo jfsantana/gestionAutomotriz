@@ -41,6 +41,7 @@ class UpdateVehicleRequest extends FormRequest
             'model' => ['required', 'string', 'max:80'],
             'year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 2)],
             'color' => ['nullable', 'string', 'max:50'],
+            'photo' => ['nullable', 'image', 'max:5120'], // Máximo 5MB
             'current_mileage' => ['nullable', 'integer', 'min:0'],
             'fuel_type' => ['nullable', 'string', 'max:30'],
             'notes' => ['nullable', 'string', 'max:1000'],

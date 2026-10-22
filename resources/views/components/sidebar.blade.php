@@ -1,5 +1,5 @@
-<aside class="sidebar bg-white border-end py-3" id="appSidebar">
-    <div class="position-sticky pt-1 px-2">
+<aside class="sidebar bg-white border-end d-flex flex-column justify-content-between" id="appSidebar">
+    <div class="pt-3 px-2 flex-grow-1 overflow-auto">
 
         {{-- SECCIÓN 1: PRINCIPAL --}}
         <div class="sidebar-section mb-3">
@@ -153,5 +153,26 @@
         @endif
 
     </div>
+
+    {{-- BORDE INFERIOR: ENLACE FIJO A LAS POLÍTICAS Y CONDICIONES ACEPTADAS --}}
+    @if(isset($currentPlatformPolicy) && $currentPlatformPolicy)
+        <div class="sidebar-footer border-top p-2 bg-light text-center">
+            <button 
+                type="button" 
+                class="btn btn-link p-0 text-decoration-none text-muted small d-flex align-items-center justify-content-center w-100" 
+                data-bs-toggle="modal" 
+                data-bs-target="#viewAcceptedPolicyModal"
+                title="Ver Políticas de Uso y Condiciones aceptadas"
+            >
+                <span class="nav-icon fs-6 me-1">&#128220;</span>
+                <span class="nav-text" style="font-size: 0.78rem;">Políticas y Condiciones</span>
+            </button>
+            @if(isset($userPolicyAcceptance) && $userPolicyAcceptance)
+                <div class="nav-text text-muted" style="font-size: 0.68rem; margin-top: 2px;">
+                    v{{ $currentPlatformPolicy->version }} &bull; Aceptado el {{ $userPolicyAcceptance->accepted_at?->format('d/m/Y') }}
+                </div>
+            @endif
+        </div>
+    @endif
 </aside>
 

@@ -16,6 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'super_admin' => \App\Http\Middleware\RequireSuperAdmin::class,
             'company_admin' => \App\Http\Middleware\RequireCompanyAdminOrSuperAdmin::class,
             'subscription.active' => \App\Http\Middleware\EnsureCompanySubscriptionIsActive::class,
+            'policy.accepted' => \App\Http\Middleware\EnsurePolicyAccepted::class,
+        ]);
+
+        // Asegurar que EnsurePolicyAccepted se evalúe en todas las rutas web
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsurePolicyAccepted::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

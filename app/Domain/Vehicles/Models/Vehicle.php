@@ -36,6 +36,7 @@ class Vehicle extends Model
         'model',
         'year',
         'color',
+        'photo_path',
         'current_mileage',
         'fuel_type',
         'notes',

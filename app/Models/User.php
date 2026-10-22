@@ -4,11 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Companies\Models\Company;
+use App\Domain\Users\Models\PlatformPolicy;
+use App\Domain\Users\Models\UserPolicyAcceptance;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -56,5 +59,29 @@ class User extends Authenticatable
     public function isCompanyAdmin(): bool
     {
         return $this->role === 'company_admin';
+    }
+
+    /**
+     * Historial de aceptaciones de políticas del usuario.
+     */
+    public function policyAcceptances(): HasMany
+    {
+        return $this->hasMany(UserPolicyAcceptance::class, 'user_id');
+    }
+
+    /**
+     * Determina si el usuario ya aceptó la versión vigente de las políticas.
+     */
+    public function hasAcceptedCurrentPolicy(): bool
+    {
+        $activePolicy = PlatformPolicy::activePolicy();
+
+        if (! $activePolicy) {
+            return true; // Si no hay política publicada, no se bloquea
+        }
+
+        return $this->policyAcceptances()
+            ->where('platform_policy_id', $activePolicy->id)
+            ->exists();
     }
 }

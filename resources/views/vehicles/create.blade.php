@@ -22,7 +22,7 @@
 
 <div class="card shadow-sm border-0">
     <div class="card-body p-4">
-        <form method="POST" action="{{ route('vehicles.store') }}" novalidate>
+        <form method="POST" action="{{ route('vehicles.store') }}" enctype="multipart/form-data" novalidate>
             @include('vehicles._form')
         </form>
     </div>

@@ -60,6 +60,11 @@
                 </a>
             </div>
             <div class="card-body">
+                @if($vehicle->photo_path)
+                    <div class="mb-4 text-center p-2 bg-light rounded border">
+                        <img src="{{ asset('storage/' . $vehicle->photo_path) }}" alt="Foto del Vehículo" class="img-fluid rounded shadow-sm" style="max-height: 280px; object-fit: cover;">
+                    </div>
+                @endif
                 <div class="row g-3">
                     <div class="col-sm-6">
                         <small class="text-muted d-block">Placa / Matrícula</small>
