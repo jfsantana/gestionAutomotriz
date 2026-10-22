@@ -80,6 +80,12 @@
                 </div>
                 <ul class="nav flex-column mt-1">
                     <li class="nav-item mb-1">
+                        <a class="nav-link {{ request()->routeIs('company.profile.*') ? 'active fw-bold' : '' }}" href="{{ route('company.profile.edit') }}" title="Logo y Colores del Taller">
+                            <span class="nav-icon">&#127912;</span>
+                            <span class="nav-text">Identidad y Logo</span>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold' : '' }}" href="{{ route('staff.index') }}" title="Personal Técnico y Mecánicos">
                             <span class="nav-icon">&#128104;&#8205;&#128295;</span>
                             <span class="nav-text">Personal Operativo</span>

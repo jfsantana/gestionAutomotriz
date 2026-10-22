@@ -4,6 +4,7 @@ namespace App\Domain\Companies\Models;
 
 use App\Domain\Billing\Models\CompanySubscription;
 use App\Domain\Vehicles\Models\Vehicle;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -37,6 +38,8 @@ class Company extends Model
         'website',
         'instagram_url',
         'facebook_url',
+        'logo_path',
+        'theme_palette',
         'address',
         'city',
         'state',
@@ -88,6 +91,30 @@ class Company extends Model
     public function currentSubscription(): HasOne
     {
         return $this->hasOne(CompanySubscription::class, 'company_id')->latestOfMany();
+    }
+
+    /**
+     * Usuarios asociados a la empresa.
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class, 'company_id');
+    }
+
+    /**
+     * Administradores de la empresa.
+     */
+    public function admins(): HasMany
+    {
+        return $this->hasMany(User::class, 'company_id')->where('role', 'company_admin');
+    }
+
+    /**
+     * Personal operativo (mecánicos) de la empresa.
+     */
+    public function mechanics(): HasMany
+    {
+        return $this->hasMany(User::class, 'company_id')->where('role', 'mechanic');
     }
 
     /**

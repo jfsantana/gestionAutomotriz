@@ -51,10 +51,22 @@ class CompanyController extends Controller
     }
 
     /**
-     * Muestra el detalle de una empresa.
+     * Muestra el detalle de una empresa con el Administrador y el resumen de personal y vehículos.
      */
     public function show(Company $company): View
     {
+        $company->load([
+            'admins',
+            'mechanics',
+            'currentSubscription.plan',
+        ]);
+
+        $company->loadCount([
+            'customers',
+            'vehicles',
+            'mechanics',
+        ]);
+
         return view('companies.show', compact('company'));
     }
 

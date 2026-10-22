@@ -85,6 +85,61 @@
             font-weight: 600;
         }
 
+        /* PALETAS DE COLORES INSTITUCIONALES DINÁMICAS */
+        /* 1. Ford Blue (Azul Ford) */
+        body.palette-ford_blue .sidebar .nav-link.active {
+            background-color: #e0edff;
+            color: #002c6c;
+            border-left: 4px solid #002c6c;
+        }
+        body.palette-ford_blue .sidebar .nav-link:hover {
+            color: #002c6c;
+        }
+        body.palette-ford_blue .btn-primary {
+            background-color: #002c6c;
+            border-color: #002c6c;
+        }
+        body.palette-ford_blue .btn-primary:hover {
+            background-color: #001f4d;
+            border-color: #001f4d;
+        }
+
+        /* 2. Honda Red (Rojo Honda) */
+        body.palette-honda_red .sidebar .nav-link.active {
+            background-color: #fee2e2;
+            color: #cc0000;
+            border-left: 4px solid #cc0000;
+        }
+        body.palette-honda_red .sidebar .nav-link:hover {
+            color: #cc0000;
+        }
+        body.palette-honda_red .btn-primary {
+            background-color: #cc0000;
+            border-color: #cc0000;
+        }
+        body.palette-honda_red .btn-primary:hover {
+            background-color: #990000;
+            border-color: #990000;
+        }
+
+        /* 3. Taller Clásico (Grafito / Rojo / Blanco) */
+        body.palette-workshop_classic .sidebar .nav-link.active {
+            background-color: #f1f5f9;
+            color: #d90429;
+            border-left: 4px solid #d90429;
+        }
+        body.palette-workshop_classic .sidebar .nav-link:hover {
+            color: #d90429;
+        }
+        body.palette-workshop_classic .btn-primary {
+            background-color: #2b2d42;
+            border-color: #2b2d42;
+        }
+        body.palette-workshop_classic .btn-primary:hover {
+            background-color: #1a1b29;
+            border-color: #1a1b29;
+        }
+
         /* ESTADO MINIMIZADO (Desktop) */
         body.sidebar-minimized #appSidebar {
             width: 68px;
@@ -140,7 +195,10 @@
     </style>
     @stack('styles')
 </head>
-<body>
+@php
+    $themeClass = 'palette-' . (auth()->check() && auth()->user()->company ? (auth()->user()->company->theme_palette ?? 'ford_blue') : 'ford_blue');
+@endphp
+<body class="{{ $themeClass }}">
     @include('components.navbar')
 
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>

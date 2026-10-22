@@ -61,6 +61,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('subscription.active')->group(function () {
         // Módulos para company_admin
         Route::middleware('company_admin')->group(function () {
+            // Perfil e Identidad del Taller (Logotipo y Paleta de colores)
+            Route::get('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'edit'])->name('company.profile.edit');
+            Route::put('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'update'])->name('company.profile.update');
+
             // Personal interno (Staff / Mecánicos)
             Route::patch('staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
             Route::resource('staff', StaffController::class)->except(['show', 'destroy']);
