@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"chat.tools.terminal.autoApprove": {
+			"composer": true,
+			"Get-Command": true,
+			"&": true
+		}
+	}
+}
