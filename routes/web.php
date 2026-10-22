@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\CompanyAdminController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
@@ -27,9 +28,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    // Módulo de Companies (exclusivo para super_admin)
+    // Módulos exclusivos para super_admin
     Route::middleware('super_admin')->group(function () {
         Route::resource('companies', CompanyController::class);
+        Route::resource('company-admins', CompanyAdminController::class)->parameters([
+            'company-admins' => 'company_admin',
+        ]);
     });
 });
 

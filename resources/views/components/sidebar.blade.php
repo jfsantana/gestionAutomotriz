@@ -26,6 +26,11 @@
                         Companies
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('company-admins.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('company-admins.index') }}">
+                        Usuarios Empresa
+                    </a>
+                </li>
             @endif
             <li class="nav-item">
                 <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">

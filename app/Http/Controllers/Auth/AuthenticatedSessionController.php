@@ -30,13 +30,24 @@ class AuthenticatedSessionController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (! Auth::attempt($credentials, $remember)) {
+        if (! Auth::attempt(array_merge($credentials, ['is_active' => true]), $remember)) {
+            // Verificar si el usuario existe pero está inactivo para retroalimentación precisa
+            $userExists = \App\Models\User::where('username', $credentials['username'])->first();
+            if ($userExists && ! $userExists->is_active) {
+                return back()->withErrors([
+                    'username' => 'Tu cuenta se encuentra desactivada. Contacta al superadministrador.',
+                ])->onlyInput('username');
+            }
+
             return back()->withErrors([
                 'username' => 'Las credenciales proporcionadas no son válidas.',
             ])->onlyInput('username');
         }
 
         $request->session()->regenerate();
+
+        // Actualizar último inicio de sesión
+        $request->user()?->update(['last_login_at' => now()]);
 
         return redirect()->intended(route('dashboard'));
     }
