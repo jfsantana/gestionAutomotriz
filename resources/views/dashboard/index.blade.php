@@ -19,11 +19,21 @@
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body p-4">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h4 class="card-title fw-bold text-dark mb-0">Bienvenido, {{ auth()->user()->name ?? 'Usuario' }}</h4>
+            <div>
+                <h4 class="card-title fw-bold text-dark mb-0">Bienvenido, {{ auth()->user()->name ?? 'Usuario' }}</h4>
+                @if(auth()->user()->company)
+                    <small class="text-primary fw-semibold">{{ auth()->user()->company->name }}</small>
+                @endif
+            </div>
             <span class="badge bg-primary text-uppercase px-3 py-2">Rol: {{ auth()->user()->role ?? 'N/A' }}</span>
         </div>
         <p class="card-text text-secondary mb-3">
-            Sesión iniciada con el usuario <code>{{ auth()->user()->username ?? '' }}</code>. El entorno base se encuentra instalado y estructurado siguiendo principios de arquitectura modular orientada a dominio (DDD) y preparado para aislamiento por empresa (Multi-Tenant).
+            Sesión iniciada con el usuario <code>{{ auth()->user()->username ?? '' }}</code>. 
+            @if(auth()->user()->role === 'mechanic')
+                Panel operativo asignado a tu perfil técnico en taller.
+            @else
+                El entorno base se encuentra instalado y estructurado siguiendo principios de arquitectura modular orientada a dominio (DDD) y preparado para aislamiento por empresa (Multi-Tenant).
+            @endif
         </p>
         <div class="row g-3">
             <div class="col-md-4">

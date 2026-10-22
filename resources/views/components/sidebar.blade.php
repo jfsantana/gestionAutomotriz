@@ -31,7 +31,21 @@
                         Usuarios Empresa
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('staff.index') }}">
+                        Personal Operativo
+                    </a>
+                </li>
             @endif
+
+            @if(auth()->check() && auth()->user()->role === 'company_admin')
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('staff.index') }}">
+                        Personal (Mecánicos)
+                    </a>
+                </li>
+            @endif
+
             <li class="nav-item">
                 <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
                     Vehicles <span class="badge bg-secondary ms-1">Próximamente</span>

@@ -5,6 +5,7 @@ use App\Http\Controllers\CompanyAdminController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\StaffController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,6 +35,12 @@ Route::middleware('auth')->group(function () {
         Route::resource('company-admins', CompanyAdminController::class)->parameters([
             'company-admins' => 'company_admin',
         ]);
+    });
+
+    // Módulo de personal operativo interno (accesible para company_admin y super_admin)
+    Route::middleware('company_admin')->group(function () {
+        Route::patch('staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
+        Route::resource('staff', StaffController::class)->except(['show', 'destroy']);
     });
 });
 
