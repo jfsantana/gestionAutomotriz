@@ -2,8 +2,10 @@
 
 namespace App\Domain\Companies\Models;
 
+use App\Domain\Vehicles\Models\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -52,6 +54,22 @@ class Company extends Model
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Clientes asociados a la empresa.
+     */
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class, 'company_id');
+    }
+
+    /**
+     * Vehículos asociados a la empresa.
+     */
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class, 'company_id');
     }
 
     /**
