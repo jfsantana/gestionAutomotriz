@@ -48,6 +48,11 @@
 
             @if(auth()->check() && in_array(auth()->user()->role, ['super_admin', 'company_admin'], true))
                 <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('services.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('services.index') }}">
+                        Servicios
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('customers.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('customers.index') }}">
                         Clientes
                     </a>
@@ -57,18 +62,21 @@
                         Vehículos
                     </a>
                 </li>
-            @else
+            @endif
+
+            @if(auth()->check() && in_array(auth()->user()->role, ['super_admin', 'company_admin', 'mechanic'], true))
                 <li class="nav-item">
-                    <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
-                        Vehicles <span class="badge bg-secondary ms-1">Próximamente</span>
+                    <a class="nav-link {{ request()->routeIs('maintenance-orders.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('maintenance-orders.index') }}">
+                        Mantenimientos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('reminders.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('reminders.index') }}">
+                        Recordatorios
                     </a>
                 </li>
             @endif
-            <li class="nav-item">
-                <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
-                    Maintenance <span class="badge bg-secondary ms-1">Próximamente</span>
-                </a>
-            </li>
+
             <li class="nav-item">
                 <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
                     Billing <span class="badge bg-secondary ms-1">Próximamente</span>

@@ -1,0 +1,31 @@
+@extends('layouts.app')
+
+@section('title', 'Nueva Orden de Mantenimiento')
+
+@section('content')
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 mb-0">Registrar Orden de Mantenimiento</h1>
+        <p class="text-muted mb-0 small">
+            @if(isset($preselectedVehicle) && $preselectedVehicle)
+                Servicio sobre el vehículo con placa <strong>{{ $preselectedVehicle->plate }}</strong> ({{ $preselectedVehicle->make }} {{ $preselectedVehicle->model }})
+            @else
+                Alta operativa de orden para vehículo y cliente
+            @endif
+        </p>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ route('maintenance-orders.index') }}" class="btn btn-sm btn-outline-secondary">
+            &larr; Volver al Listado
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+        <form method="POST" action="{{ route('maintenance-orders.store') }}" enctype="multipart/form-data" novalidate>
+            @include('maintenance_orders._form')
+        </form>
+    </div>
+</div>
+@endsection

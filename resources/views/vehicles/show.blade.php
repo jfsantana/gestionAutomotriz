@@ -21,8 +21,11 @@
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0 fw-semibold">Especificaciones del Vehículo</h5>
+                <a href="{{ route('maintenance-orders.create', ['vehicle_id' => $vehicle->id]) }}" class="btn btn-sm btn-success fw-semibold">
+                    + Registrar Mantenimiento
+                </a>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -61,6 +64,80 @@
                         </div>
                     @endif
                 </div>
+            </div>
+        </div>
+
+        {{-- Historial de Mantenimientos del Vehículo --}}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-semibold">
+                    Historial de Mantenimientos
+                    <span class="badge bg-primary ms-1">{{ $vehicle->maintenanceOrders->count() }}</span>
+                </h5>
+                <a href="{{ route('maintenance-orders.create', ['vehicle_id' => $vehicle->id]) }}" class="btn btn-sm btn-outline-success">
+                    + Registrar Servicio
+                </a>
+            </div>
+            <div class="card-body p-0">
+                @if($vehicle->maintenanceOrders->isEmpty())
+                    <div class="text-center py-4">
+                        <p class="text-muted small mb-2">Este vehículo no registra mantenimientos previos en el taller.</p>
+                        <a href="{{ route('maintenance-orders.create', ['vehicle_id' => $vehicle->id]) }}" class="btn btn-sm btn-success">
+                            Registrar Primer Mantenimiento
+                        </a>
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="ps-3">Orden / Fecha</th>
+                                    <th scope="col">Servicio</th>
+                                    <th scope="col">Kilometraje</th>
+                                    <th scope="col">Mecánico</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col" class="text-end pe-3">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($vehicle->maintenanceOrders as $mOrder)
+                                    <tr>
+                                        <td class="ps-3">
+                                            <div class="fw-bold">{{ $mOrder->order_number ?? '#' . $mOrder->id }}</div>
+                                            <small class="text-muted">{{ $mOrder->service_date?->format('d/m/Y') }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-dark">{{ $mOrder->service_name_snapshot }}</div>
+                                            <span class="badge {{ $mOrder->maintenance_type === 'preventive' ? 'bg-success' : 'bg-warning text-dark' }} small">
+                                                {{ $mOrder->maintenance_type === 'preventive' ? 'Preventivo' : 'Correctivo' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ number_format($mOrder->current_mileage) }} km</td>
+                                        <td>
+                                            <small class="text-muted">{{ $mOrder->mechanic?->name ?? '—' }}</small>
+                                        </td>
+                                        <td>
+                                            @if($mOrder->status === 'completed')
+                                                <span class="badge bg-success">Completada</span>
+                                            @elseif($mOrder->status === 'in_progress')
+                                                <span class="badge bg-primary">En Progreso</span>
+                                            @elseif($mOrder->status === 'cancelled')
+                                                <span class="badge bg-danger">Cancelada</span>
+                                            @else
+                                                <span class="badge bg-secondary">Abierta</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <a href="{{ route('maintenance-orders.show', $mOrder) }}" class="btn btn-outline-secondary btn-sm">
+                                                Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

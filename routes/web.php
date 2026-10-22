@@ -6,6 +6,9 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\MaintenanceOrderController;
+use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +48,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
         Route::resource('staff', StaffController::class)->except(['show', 'destroy']);
 
+        // Catálogo de Servicios
+        Route::patch('services/{service}/toggle-status', [ServiceController::class, 'toggleStatus'])->name('services.toggle-status');
+        Route::resource('services', ServiceController::class)->except(['show', 'destroy']);
+
         // Clientes y Propietarios
         Route::resource('customers', CustomerController::class);
 
@@ -54,6 +61,12 @@ Route::middleware('auth')->group(function () {
         // Módulo general de Vehículos
         Route::resource('vehicles', VehicleController::class);
     });
+
+    // Órdenes de Mantenimiento (Accesible para company_admin, mechanic y super_admin)
+    Route::resource('maintenance-orders', MaintenanceOrderController::class);
+
+    // Recordatorios de Mantenimiento y Próximos Vencimientos
+    Route::get('reminders', [ReminderController::class, 'index'])->name('reminders.index');
 });
 
 
