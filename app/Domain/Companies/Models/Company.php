@@ -2,10 +2,12 @@
 
 namespace App\Domain\Companies\Models;
 
+use App\Domain\Billing\Models\CompanySubscription;
 use App\Domain\Vehicles\Models\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -70,6 +72,32 @@ class Company extends Model
     public function vehicles(): HasMany
     {
         return $this->hasMany(Vehicle::class, 'company_id');
+    }
+
+    /**
+     * Suscripciones de la empresa.
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(CompanySubscription::class, 'company_id')->latest('id');
+    }
+
+    /**
+     * Suscripción más reciente de la empresa.
+     */
+    public function currentSubscription(): HasOne
+    {
+        return $this->hasOne(CompanySubscription::class, 'company_id')->latestOfMany();
+    }
+
+    /**
+     * Determina si la empresa tiene una suscripción operable.
+     */
+    public function hasActiveSubscription(): bool
+    {
+        $sub = $this->currentSubscription;
+
+        return $sub && $sub->isOperable();
     }
 
     /**

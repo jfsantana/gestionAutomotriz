@@ -58,6 +58,110 @@
     </div>
 </div>
 
+<!-- Alerta de Suscripción para Company Admin -->
+@if(isset($companySubscription) && $companySubscription)
+    @php
+        $daysSub = $companySubscription->daysRemaining();
+        $isSubOperable = $companySubscription->isOperable();
+    @endphp
+    @if(! $isSubOperable)
+        <div class="alert alert-danger shadow-sm border-0 d-flex justify-content-between align-items-center mb-4 p-3">
+            <div>
+                <strong>&#9888; Suscripción Inactiva o Vencida:</strong> Tu cuenta se encuentra en estado <strong>{{ strtoupper($companySubscription->status) }}</strong>. Los módulos operativos están restringidos.
+            </div>
+            <a href="{{ route('subscription.status') }}" class="btn btn-sm btn-danger fw-semibold">Ver Estado de Cuenta</a>
+        </div>
+    @elseif($daysSub !== null && $daysSub <= 7)
+        <div class="alert alert-warning shadow-sm border-0 d-flex justify-content-between align-items-center mb-4 p-3">
+            <div>
+                <strong>Aviso de Vencimiento:</strong> Tu suscripción a <strong>{{ $companySubscription->plan?->name }}</strong> vence en <strong>{{ $daysSub }} día(s)</strong> ({{ $companySubscription->ends_at?->format('d/m/Y') }}).
+            </div>
+            <a href="{{ route('subscription.status') }}" class="btn btn-sm btn-warning text-dark fw-semibold">Renovar</a>
+        </div>
+    @endif
+@endif
+
+<!-- Resumen Global de Suscripciones (Exclusivo Superadmin) -->
+@if(isset($subscriptionSummary) && $subscriptionSummary)
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm border-start border-success border-4 bg-white">
+            <div class="card-body py-3">
+                <small class="text-muted text-uppercase fw-semibold d-block">Empresas Activas</small>
+                <div class="h3 mb-0 text-success fw-bold">{{ $subscriptionSummary['active'] }}</div>
+                <small class="text-muted">Acceso SaaS normal</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm border-start border-info border-4 bg-white">
+            <div class="card-body py-3">
+                <small class="text-muted text-uppercase fw-semibold d-block">Empresas en Trial</small>
+                <div class="h3 mb-0 text-info text-dark fw-bold">{{ $subscriptionSummary['trial'] }}</div>
+                <small class="text-muted">Período de prueba</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm border-start border-warning border-4 bg-white">
+            <div class="card-body py-3">
+                <small class="text-muted text-uppercase fw-semibold d-block">Empresas Vencidas</small>
+                <div class="h3 mb-0 text-warning text-dark fw-bold">{{ $subscriptionSummary['expired'] }}</div>
+                <small class="text-muted">Requieren renovación</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm border-start border-danger border-4 bg-white">
+            <div class="card-body py-3">
+                <small class="text-muted text-uppercase fw-semibold d-block">Suspendidas / Canceladas</small>
+                <div class="h3 mb-0 text-danger fw-bold">{{ $subscriptionSummary['suspended'] + $subscriptionSummary['cancelled'] }}</div>
+                <small class="text-muted">Acceso bloqueado</small>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Resumen de Alertas Operativas de Mantenimiento -->
+@if(isset($reminderSummary))
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-danger border-4 bg-white">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted text-uppercase fw-semibold d-block">Mantenimientos Vencidos</small>
+                    <div class="h3 mb-0 text-danger fw-bold">{{ $reminderSummary['overdue'] }}</div>
+                </div>
+                <a href="{{ route('reminders.index', ['status' => 'overdue']) }}" class="btn btn-sm btn-outline-danger">Ver Vencidos</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-warning border-4 bg-white">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted text-uppercase fw-semibold d-block">Próximos a Vencer (30d / 1,000km)</small>
+                    <div class="h3 mb-0 text-warning text-dark fw-bold">{{ $reminderSummary['due_soon'] }}</div>
+                </div>
+                <a href="{{ route('reminders.index', ['status' => 'due_soon']) }}" class="btn btn-sm btn-outline-warning">Ver Alertas</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-success border-4 bg-white">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted text-uppercase fw-semibold d-block">Programados a Futuro</small>
+                    <div class="h3 mb-0 text-success fw-bold">{{ $reminderSummary['upcoming'] }}</div>
+                </div>
+                <a href="{{ route('reminders.index') }}" class="btn btn-sm btn-outline-success">Todos los Recordatorios</a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 <!-- Estado Técnico del Sistema -->
 <div class="row g-4 mb-4">
     <div class="col-md-6">

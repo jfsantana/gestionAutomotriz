@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CompanyAdminController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CompanySubscriptionController;
+use App\Http\Controllers\CompanySubscriptionStatusController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
@@ -10,6 +12,7 @@ use App\Http\Controllers\MaintenanceOrderController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\SubscriptionPlanController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,39 +37,52 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    // Módulos exclusivos para super_admin
+    // Estado de cuenta y suscripción (accesible siempre para ver estatus / pantalla de bloqueo)
+    Route::get('subscription-status', [CompanySubscriptionStatusController::class, 'show'])->name('subscription.status');
+
+    // Módulos exclusivos para super_admin (Planes, Empresas, Suscripciones)
     Route::middleware('super_admin')->group(function () {
         Route::resource('companies', CompanyController::class);
         Route::resource('company-admins', CompanyAdminController::class)->parameters([
             'company-admins' => 'company_admin',
         ]);
+
+        // Gestión de Planes SaaS
+        Route::patch('subscription-plans/{subscription_plan}/toggle-status', [SubscriptionPlanController::class, 'toggleStatus'])->name('subscription-plans.toggle-status');
+        Route::resource('subscription-plans', SubscriptionPlanController::class)->except(['show', 'destroy']);
+
+        // Gestión de Suscripciones por Empresa
+        Route::post('company-subscriptions/{company_subscription}/renew', [CompanySubscriptionController::class, 'renew'])->name('company-subscriptions.renew');
+        Route::patch('company-subscriptions/{company_subscription}/toggle-suspension', [CompanySubscriptionController::class, 'toggleSuspension'])->name('company-subscriptions.toggle-suspension');
+        Route::resource('company-subscriptions', CompanySubscriptionController::class)->except(['destroy']);
     });
 
-    // Módulos accesibles para company_admin (y super_admin)
-    Route::middleware('company_admin')->group(function () {
-        // Personal interno (Staff / Mecánicos)
-        Route::patch('staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
-        Route::resource('staff', StaffController::class)->except(['show', 'destroy']);
+    // Módulos operativos protegidos por estado de suscripción activa de la empresa
+    Route::middleware('subscription.active')->group(function () {
+        // Módulos para company_admin
+        Route::middleware('company_admin')->group(function () {
+            // Personal interno (Staff / Mecánicos)
+            Route::patch('staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
+            Route::resource('staff', StaffController::class)->except(['show', 'destroy']);
 
-        // Catálogo de Servicios
-        Route::patch('services/{service}/toggle-status', [ServiceController::class, 'toggleStatus'])->name('services.toggle-status');
-        Route::resource('services', ServiceController::class)->except(['show', 'destroy']);
+            // Catálogo de Servicios
+            Route::patch('services/{service}/toggle-status', [ServiceController::class, 'toggleStatus'])->name('services.toggle-status');
+            Route::resource('services', ServiceController::class)->except(['show', 'destroy']);
 
-        // Clientes y Propietarios
-        Route::resource('customers', CustomerController::class);
+            // Clientes y Propietarios
+            Route::resource('customers', CustomerController::class);
 
-        // Flujo contextual de vehículos por cliente
-        Route::get('customers/{customer}/vehicles/create', [VehicleController::class, 'createForCustomer'])->name('customers.vehicles.create');
+            // Flujo contextual de vehículos por cliente
+            Route::get('customers/{customer}/vehicles/create', [VehicleController::class, 'createForCustomer'])->name('customers.vehicles.create');
 
-        // Módulo general de Vehículos
-        Route::resource('vehicles', VehicleController::class);
+            // Módulo general de Vehículos
+            Route::resource('vehicles', VehicleController::class);
+        });
+
+        // Órdenes de Mantenimiento y Recordatorios
+        Route::resource('maintenance-orders', MaintenanceOrderController::class);
+        Route::get('reminders', [ReminderController::class, 'index'])->name('reminders.index');
     });
-
-    // Órdenes de Mantenimiento (Accesible para company_admin, mechanic y super_admin)
-    Route::resource('maintenance-orders', MaintenanceOrderController::class);
-
-    // Recordatorios de Mantenimiento y Próximos Vencimientos
-    Route::get('reminders', [ReminderController::class, 'index'])->name('reminders.index');
 });
 
 

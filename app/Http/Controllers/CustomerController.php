@@ -80,7 +80,21 @@ class CustomerController extends Controller
 
         $customer->load(['company', 'vehicles' => fn ($q) => $q->latest('id')]);
 
-        return view('customers.show', compact('customer'));
+        $reminderService = app(\App\Services\MaintenanceReminderService::class);
+        $vehicleReminders = [];
+        $hasAlerts = false;
+
+        foreach ($customer->vehicles as $veh) {
+            $rem = $reminderService->getVehicleReminder($veh);
+            if ($rem) {
+                $vehicleReminders[$veh->id] = $rem;
+                if (in_array($rem['evaluation']['status'], ['overdue', 'due_soon'], true)) {
+                    $hasAlerts = true;
+                }
+            }
+        }
+
+        return view('customers.show', compact('customer', 'vehicleReminders', 'hasAlerts'));
     }
 
     /**

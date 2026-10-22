@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'super_admin' => \App\Http\Middleware\RequireSuperAdmin::class,
             'company_admin' => \App\Http\Middleware\RequireCompanyAdminOrSuperAdmin::class,
+            'subscription.active' => \App\Http\Middleware\EnsureCompanySubscriptionIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

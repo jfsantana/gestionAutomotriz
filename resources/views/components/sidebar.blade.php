@@ -36,12 +36,27 @@
                         Personal Operativo
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('subscription-plans.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('subscription-plans.index') }}">
+                        Planes SaaS
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('company-subscriptions.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('company-subscriptions.index') }}">
+                        Suscripciones
+                    </a>
+                </li>
             @endif
 
             @if(auth()->check() && auth()->user()->role === 'company_admin')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('staff.index') }}">
                         Personal (Mecánicos)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('subscription.status') ? 'active fw-bold text-primary bg-white shadow-sm' : 'text-dark' }}" href="{{ route('subscription.status') }}">
+                        Mi Suscripción
                     </a>
                 </li>
             @endif
@@ -77,11 +92,13 @@
                 </li>
             @endif
 
-            <li class="nav-item">
-                <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
-                    Billing <span class="badge bg-secondary ms-1">Próximamente</span>
-                </a>
-            </li>
+            @if(! (auth()->check() && auth()->user()->role === 'super_admin'))
+                <li class="nav-item">
+                    <a class="nav-link text-muted" href="#" tabindex="-1" aria-disabled="true">
+                        Billing <span class="badge bg-secondary ms-1">Próximamente</span>
+                    </a>
+                </li>
+            @endif
         </ul>
     </div>
 </div>

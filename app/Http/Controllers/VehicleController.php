@@ -75,9 +75,12 @@ class VehicleController extends Controller
     {
         $this->authorizeVehicleAccess($request->user(), $vehicle);
 
-        $vehicle->load(['customer', 'company']);
+        $vehicle->load(['customer', 'company', 'maintenanceOrders' => fn ($q) => $q->latest('service_date')]);
 
-        return view('vehicles.show', compact('vehicle'));
+        $reminderService = app(\App\Services\MaintenanceReminderService::class);
+        $nextMaintenance = $reminderService->getVehicleReminder($vehicle);
+
+        return view('vehicles.show', compact('vehicle', 'nextMaintenance'));
     }
 
     /**

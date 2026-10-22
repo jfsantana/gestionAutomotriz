@@ -20,6 +20,38 @@
 
 <div class="row g-4">
     <div class="col-lg-8">
+        {{-- Alerta de Próximo Mantenimiento --}}
+        @if(isset($nextMaintenance) && $nextMaintenance)
+            <div class="card shadow-sm border-0 mb-4 border-start border-{{ $nextMaintenance['evaluation']['badge_class'] }} border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="fw-bold mb-0 text-dark">
+                            Control de Próximo Mantenimiento: {{ $nextMaintenance['order']->service_name_snapshot }}
+                        </h6>
+                        <span class="badge bg-{{ $nextMaintenance['evaluation']['badge_class'] }} px-2 py-1">
+                            {{ $nextMaintenance['evaluation']['status_label'] }}
+                        </span>
+                    </div>
+                    <div class="row g-2 mt-1 small">
+                        <div class="col-sm-6">
+                            <span class="text-muted">Por Fecha:</span>
+                            <strong>{{ $nextMaintenance['order']->next_due_date ? $nextMaintenance['order']->next_due_date->format('d/m/Y') : 'No fijada' }}</strong>
+                            @if($nextMaintenance['evaluation']['days_remaining'] !== null)
+                                <span class="text-muted">({{ $nextMaintenance['evaluation']['days_remaining'] < 0 ? abs($nextMaintenance['evaluation']['days_remaining']) . ' días vencidos' : 'en ' . $nextMaintenance['evaluation']['days_remaining'] . ' días' }})</span>
+                            @endif
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted">Por Odómetro:</span>
+                            <strong>{{ $nextMaintenance['order']->next_due_mileage ? number_format($nextMaintenance['order']->next_due_mileage) . ' km' : 'No fijado' }}</strong>
+                            @if($nextMaintenance['evaluation']['mileage_remaining'] !== null)
+                                <span class="text-muted">({{ $nextMaintenance['evaluation']['mileage_remaining'] <= 0 ? number_format(abs($nextMaintenance['evaluation']['mileage_remaining'])) . ' km excedidos' : 'faltan ' . number_format($nextMaintenance['evaluation']['mileage_remaining']) . ' km' }})</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0 fw-semibold">Especificaciones del Vehículo</h5>

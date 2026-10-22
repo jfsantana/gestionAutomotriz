@@ -22,6 +22,17 @@
 </div>
 
 <div class="row g-4 mb-4">
+    {{-- Alerta Global de Mantenimientos del Cliente --}}
+    @if(isset($hasAlerts) && $hasAlerts)
+        <div class="col-12">
+            <div class="alert alert-warning d-flex align-items-center mb-0 shadow-sm" role="alert">
+                <div>
+                    <strong>Atención:</strong> Uno o más vehículos de este cliente tienen mantenimientos vencidos o próximos a vencer en los próximos 30 días / 1,000 km.
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="col-lg-4">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-header bg-white py-3 border-bottom">
@@ -122,6 +133,13 @@
                                         </td>
                                         <td>
                                             <span class="text-secondary small">{{ $vehicle->fuel_type ? ucfirst($vehicle->fuel_type) : '—' }}</span>
+                                            @if(isset($vehicleReminders[$vehicle->id]))
+                                                <div class="mt-1">
+                                                    <span class="badge bg-{{ $vehicleReminders[$vehicle->id]['evaluation']['badge_class'] }}">
+                                                        {{ $vehicleReminders[$vehicle->id]['evaluation']['status_label'] }}
+                                                    </span>
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="text-end pe-3">
                                             <div class="btn-group btn-group-sm" role="group">
