@@ -85,6 +85,28 @@ class CompanyManagementTest extends TestCase
     }
 
     /**
+     * Valida que el slug se genere automáticamente si se envía vacío.
+     */
+    public function test_slug_is_automatically_generated_when_omitted(): void
+    {
+        $payload = [
+            'name' => 'Taller Mecánico Hermanos Pérez',
+            'status' => 'active',
+            'country' => 'DO',
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post('/companies', $payload);
+
+        $this->assertDatabaseHas('companies', [
+            'name' => 'Taller Mecánico Hermanos Pérez',
+            'slug' => 'taller-mecanico-hermanos-perez',
+        ]);
+
+        $company = Company::where('slug', 'taller-mecanico-hermanos-perez')->first();
+        $response->assertRedirect(route('companies.show', $company));
+    }
+
+    /**
      * Valida que el slug deba ser único.
      */
     public function test_slug_must_be_unique(): void
