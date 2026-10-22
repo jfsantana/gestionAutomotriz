@@ -20,7 +20,7 @@
 
 <div class="card shadow-sm border-0">
     <div class="card-body p-4">
-        <form method="POST" action="{{ route('companies.update', $company) }}" novalidate>
+        <form method="POST" action="{{ route('companies.update', $company) }}" enctype="multipart/form-data" novalidate>
             @method('PUT')
             @include('companies._form')
         </form>

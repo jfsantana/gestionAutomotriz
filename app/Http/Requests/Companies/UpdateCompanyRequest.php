@@ -39,6 +39,8 @@ class UpdateCompanyRequest extends FormRequest
             'state' => ['nullable', 'string', 'max:100'],
             'country' => ['nullable', 'string', 'size:2'],
             'status' => ['required', 'string', Rule::in(['trial', 'active', 'suspended'])],
+            'theme_palette' => ['nullable', 'string', Rule::in(['ford_blue', 'honda_red', 'workshop_classic'])],
+            'logo' => ['nullable', 'image', 'max:4096'],
         ];
     }
 }

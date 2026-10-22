@@ -43,6 +43,10 @@ class CompanyController extends Controller
             $data['slug'] = Company::generateUniqueSlug($data['name']);
         }
 
+        if ($request->hasFile('logo')) {
+            $data['logo_path'] = $request->file('logo')->store('company_logos', 'public');
+        }
+
         $company = Company::create($data);
 
         return redirect()
@@ -85,8 +89,14 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
-        if (empty($data['slug'])) {
-            $data['slug'] = Company::generateUniqueSlug($data['name'], $company->id);
+        // En edición, preservar el slug original inmutable
+        unset($data['slug']);
+
+        if ($request->hasFile('logo')) {
+            if ($company->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($company->logo_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($company->logo_path);
+            }
+            $data['logo_path'] = $request->file('logo')->store('company_logos', 'public');
         }
 
         $company->update($data);

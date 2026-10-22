@@ -139,7 +139,6 @@ class CompanyManagementTest extends TestCase
 
         $response = $this->actingAs($this->superAdmin)->put("/companies/{$company->id}", [
             'name' => 'Taller Modificado',
-            'slug' => 'taller-modificado',
             'status' => 'active',
             'country' => 'DO',
         ]);
@@ -148,7 +147,7 @@ class CompanyManagementTest extends TestCase
         $this->assertDatabaseHas('companies', [
             'id' => $company->id,
             'name' => 'Taller Modificado',
-            'slug' => 'taller-modificado',
+            'slug' => 'taller-inicial', // El slug original se mantiene inmutable
             'status' => 'active',
         ]);
     }
