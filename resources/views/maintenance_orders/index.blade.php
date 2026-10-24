@@ -37,6 +37,7 @@
                             <th scope="col">Vehículo</th>
                             <th scope="col">Cliente</th>
                             <th scope="col">Servicio Realizado</th>
+                            <th scope="col">Origen / Realizado por</th>
                             <th scope="col">Mecánico</th>
                             <th scope="col">Estado</th>
                             <th scope="col">Costo</th>
@@ -65,8 +66,22 @@
                                     </span>
                                 </td>
                                 <td>
+                                    @if($ord->origin === 'customer')
+                                        <span class="badge bg-warning text-dark border border-warning-subtle" title="Mantenimiento gestionado fuera del taller/concesionario por el propio cliente">
+                                            &#9888; Cliente (Fuera de taller)
+                                        </span>
+                                        <div><small class="text-muted" style="font-size: 0.72rem;">No verificado por taller</small></div>
+                                    @else
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            &#10003; Realizado en Taller
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>
                                     @if($ord->mechanic)
                                         <span class="badge bg-light text-dark border">{{ $ord->mechanic->name }}</span>
+                                    @elseif($ord->origin === 'customer')
+                                        <span class="text-muted small">Externo / Particular</span>
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif

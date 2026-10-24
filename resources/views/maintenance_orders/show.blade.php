@@ -24,10 +24,33 @@
 </div>
 
 <div class="row g-4 mb-4">
+    {{-- Alerta informativa cuando el mantenimiento fue realizado de forma personal/externa por el cliente --}}
+    @if($order->origin === 'customer')
+        <div class="col-12">
+            <div class="alert alert-warning border-warning d-flex align-items-center shadow-sm mb-0" role="alert">
+                <div class="fs-3 me-3">&#9888;</div>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">Mantenimiento Particular / Realizado fuera del Taller o Concesionario</h6>
+                    <p class="mb-0 small">
+                        Este registro fue creado manualmente por el cliente (propietario) desde el Portal de Clientes. 
+                        <strong>No fue ejecutado ni verificado por el personal técnico de este taller/concesionario</strong>. Se muestra en el historial para trazabilidad y cálculo de alertas de odómetro/fechas preventivas.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="col-lg-8">
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-semibold">Detalles del Servicio</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="card-title mb-0 fw-semibold">Detalles del Servicio</h5>
+                    @if($order->origin === 'customer')
+                        <span class="badge bg-warning text-dark border border-warning-subtle">&#9888; Realizado fuera de taller</span>
+                    @else
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">&#10003; Realizado en taller</span>
+                    @endif
+                </div>
                 @if($order->status === 'completed')
                     <span class="badge bg-success fs-6">Completada</span>
                 @elseif($order->status === 'in_progress')

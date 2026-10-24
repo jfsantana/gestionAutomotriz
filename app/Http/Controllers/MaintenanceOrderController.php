@@ -23,7 +23,7 @@ class MaintenanceOrderController extends Controller
         $currentUser = $request->user();
 
         $query = MaintenanceOrder::query()
-            ->with(['customer', 'vehicle', 'mechanic', 'company']);
+            ->with(['customer', 'vehicle', 'mechanic', 'company', 'registeredByUser']);
 
         if (in_array($currentUser->role, ['company_admin', 'mechanic'], true)) {
             $query->where('company_id', $currentUser->company_id);
@@ -162,7 +162,7 @@ class MaintenanceOrderController extends Controller
     {
         $this->authorizeOrderAccess($request->user(), $maintenance_order);
 
-        $maintenance_order->load(['customer', 'vehicle', 'service', 'mechanic', 'photos', 'company']);
+        $maintenance_order->load(['customer', 'vehicle', 'service', 'mechanic', 'photos', 'company', 'registeredByUser']);
 
         return view('maintenance_orders.show', ['order' => $maintenance_order]);
     }

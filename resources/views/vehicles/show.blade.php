@@ -130,6 +130,7 @@
                                 <tr>
                                     <th scope="col" class="ps-3">Orden / Fecha</th>
                                     <th scope="col">Servicio</th>
+                                    <th scope="col">Origen / Realizado por</th>
                                     <th scope="col">Kilometraje</th>
                                     <th scope="col">Mecánico</th>
                                     <th scope="col">Estado</th>
@@ -149,9 +150,26 @@
                                                 {{ $mOrder->maintenance_type === 'preventive' ? 'Preventivo' : 'Correctivo' }}
                                             </span>
                                         </td>
+                                        <td>
+                                            @if($mOrder->origin === 'customer')
+                                                <span class="badge bg-warning text-dark border border-warning-subtle" title="Mantenimiento realizado fuera del taller/concesionario">
+                                                    &#9888; Cliente (Fuera de taller)
+                                                </span>
+                                            @else
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                    &#10003; Realizado en Taller
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td>{{ number_format($mOrder->current_mileage) }} km</td>
                                         <td>
-                                            <small class="text-muted">{{ $mOrder->mechanic?->name ?? '—' }}</small>
+                                            @if($mOrder->mechanic)
+                                                <small class="text-muted">{{ $mOrder->mechanic->name }}</small>
+                                            @elseif($mOrder->origin === 'customer')
+                                                <small class="text-muted">Particular / Externo</small>
+                                            @else
+                                                <small class="text-muted">—</small>
+                                            @endif
                                         </td>
                                         <td>
                                             @if($mOrder->status === 'completed')

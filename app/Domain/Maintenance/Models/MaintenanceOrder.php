@@ -85,6 +85,11 @@ class MaintenanceOrder extends Model
         return $this->belongsTo(User::class, 'mechanic_id');
     }
 
+    public function registeredByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'registered_by_user_id');
+    }
+
     public function photos(): HasMany
     {
         return $this->hasMany(MaintenanceOrderPhoto::class, 'maintenance_order_id');
