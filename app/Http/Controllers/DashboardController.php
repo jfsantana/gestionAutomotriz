@@ -54,4 +54,12 @@ class DashboardController extends Controller
             'companySubscription' => $companySubscription,
         ]);
     }
+
+    /**
+     * Muestra la vista temporal del Dashboard para Usuario de Empresa.
+     */
+    public function company(Request $request): View
+    {
+        return view('dashboard.company');
+    }
 }

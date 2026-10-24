@@ -43,6 +43,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Dashboard temporal para Usuario de Empresa
+    Route::get('/company/dashboard', function () {
+        return view('dashboard.company');
+    })->name('company.dashboard');
+
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     // Estado de cuenta y suscripción (accesible siempre para ver estatus / pantalla de bloqueo)
