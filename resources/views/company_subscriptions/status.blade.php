@@ -117,10 +117,10 @@
                 <ul class="list-unstyled small mb-0">
                     <li class="mb-2">
                         <strong>Correo Central:</strong> 
-                        <a href="mailto:soporte@gestionautomotriz.local" class="text-decoration-none">soporte@gestionautomotriz.local</a>
+                        <a href="mailto:venecode.contact@gmail.com" class="text-decoration-none">venecode.contact@gmail.com</a>
                     </li>
                     <li class="mb-2">
-                        <strong>WhatsApp / Teléfono:</strong> +1 (809) 555-0100
+                        <strong>WhatsApp / Teléfono:</strong> +58 (424) 438-0137
                     </li>
                     <li class="mb-0">
                         <strong>Horario de Atención:</strong> Lunes a Viernes de 8:00 AM a 6:00 PM
