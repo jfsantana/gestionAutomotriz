@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Middleware\EnsureCompanySubscriptionIsActive;
+use App\Http\Middleware\EnsureIsCustomer;
+use App\Http\Middleware\EnsurePolicyAccepted;
+use App\Http\Middleware\RequireCompanyAdminOrSuperAdmin;
+use App\Http\Middleware\RequireSuperAdmin;
+use App\Http\Middleware\RequireWorkshopUser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,16 +19,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'super_admin' => \App\Http\Middleware\RequireSuperAdmin::class,
-            'company_admin' => \App\Http\Middleware\RequireCompanyAdminOrSuperAdmin::class,
-            'subscription.active' => \App\Http\Middleware\EnsureCompanySubscriptionIsActive::class,
-            'policy.accepted' => \App\Http\Middleware\EnsurePolicyAccepted::class,
-            'customer.only' => \App\Http\Middleware\EnsureIsCustomer::class,
+            'super_admin' => RequireSuperAdmin::class,
+            'company_admin' => RequireCompanyAdminOrSuperAdmin::class,
+            'workshop' => RequireWorkshopUser::class,
+            'subscription.active' => EnsureCompanySubscriptionIsActive::class,
+            'policy.accepted' => EnsurePolicyAccepted::class,
+            'customer.only' => EnsureIsCustomer::class,
         ]);
 
         // Asegurar que EnsurePolicyAccepted se evalúe en todas las rutas web
         $middleware->web(append: [
-            \App\Http\Middleware\EnsurePolicyAccepted::class,
+            EnsurePolicyAccepted::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

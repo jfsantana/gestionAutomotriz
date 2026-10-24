@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Companies\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -15,7 +16,8 @@ class DashboardTest extends TestCase
     #[TestWith(['/dashboard'])]
     public function test_company_admin_is_redirected_from_general_dashboard_to_company_dashboard(string $path): void
     {
-        $user = User::factory()->create(['role' => 'company_admin', 'is_active' => true]);
+        $company = Company::create(['name' => 'Taller dashboard', 'slug' => 'dashboard', 'status' => 'active']);
+        $user = User::factory()->create(['role' => 'company_admin', 'company_id' => $company->id, 'is_active' => true]);
 
         $this->actingAs($user)->get($path)->assertRedirect(route('company.dashboard'));
         $this->get(route('company.dashboard'))
@@ -53,9 +55,11 @@ class DashboardTest extends TestCase
      */
     public function test_dashboard_page_loads_successfully_on_dashboard_route_when_authenticated(): void
     {
+        $company = Company::create(['name' => 'Taller dashboard', 'slug' => 'dashboard', 'status' => 'active']);
         $user = User::factory()->create([
             'username' => 'mechanic_test',
             'role' => 'mechanic',
+            'company_id' => $company->id,
         ]);
 
         $response = $this->actingAs($user)->get('/dashboard');
@@ -78,7 +82,8 @@ class DashboardTest extends TestCase
 
     public function test_company_admin_sidebar_keeps_existing_style_in_other_modules(): void
     {
-        $user = User::factory()->create(['role' => 'company_admin', 'is_active' => true]);
+        $company = Company::create(['name' => 'Taller dashboard', 'slug' => 'dashboard', 'status' => 'active']);
+        $user = User::factory()->create(['role' => 'company_admin', 'company_id' => $company->id, 'is_active' => true]);
 
         $this->actingAs($user)->get(route('maintenance-orders.index'))
             ->assertOk()

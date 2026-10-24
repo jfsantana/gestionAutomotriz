@@ -20,6 +20,11 @@
     </div>
 </div>
 
+<div class="alert alert-info small" role="note">
+    Los recordatorios por email se envían automáticamente dos días antes del vencimiento, a las 08:00 (hora de Caracas).
+    Máximo un correo diario por mantenimiento, incluyendo los envíos manuales.
+</div>
+
 {{-- Tarjetas de Resumen Operativo --}}
 <div class="row g-3 mb-4">
     <div class="col-md-3 col-sm-6">
@@ -184,6 +189,27 @@
                                             Orden
                                         </a>
                                     </div>
+                                    @can('send-maintenance-reminder', $order)
+                                        <form method="POST" action="{{ route('reminders.send', $order) }}" class="mt-2"
+                                            data-email="{{ $order->customer?->email }}"
+                                            onsubmit="if (!confirm('¿Enviar un recordatorio de mantenimiento a ' + this.dataset.email + '?')) return false; this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Enviando...';">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-primary"
+                                                @disabled($order->reminder_email_error)
+                                                aria-label="Enviar recordatorio de la orden {{ $order->order_number ?? $order->id }}"
+                                                title="{{ $order->reminder_email_error ?? 'Enviar recordatorio al email del cliente' }}">
+                                                Enviar recordatorio
+                                            </button>
+                                            @if($order->reminder_email_error)
+                                                <small class="d-block text-muted mt-1">{{ $order->reminder_email_error }}</small>
+                                            @endif
+                                        </form>
+                                        @if($order->reminder_sent_at)
+                                            <small class="d-block text-muted mt-1">
+                                                Último envío: {{ $order->reminder_sent_at->copy()->timezone(\App\Services\MaintenanceReminderNotificationService::TIMEZONE)->format('d/m/Y H:i') }} (Caracas)
+                                            </small>
+                                        @endif
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach

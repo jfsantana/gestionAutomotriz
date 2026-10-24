@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Companies\Models\Customer;
+use App\Domain\Maintenance\Models\MaintenanceOrder;
+use App\Domain\Maintenance\Models\MaintenanceOrderPhoto;
 use App\Domain\Vehicles\Models\Vehicle;
 use App\Http\Requests\Vehicles\StoreVehiclePrivacyRequest;
 use App\Http\Requests\Vehicles\UpdateVehicleRequest;
+use App\Services\MaintenanceReminderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +25,7 @@ class VehicleController extends Controller
         $currentUser = $request->user();
 
         $query = Vehicle::query()
+            ->withConsistentOwnership()
             ->with(['customer', 'company']);
 
         if ($currentUser->role === 'company_admin') {
@@ -68,20 +72,20 @@ class VehicleController extends Controller
         $data['plate'] = $plate;
 
         // Regla de privacidad: Verificar si la placa ya se encuentra asignada
-        $existingVehicle = Vehicle::where('company_id', $companyId)
+        $existingVehicle = Vehicle::whereHas('customer', fn ($query) => $query->where('company_id', $companyId))
             ->where('plate', $plate)
             ->first();
 
         if ($existingVehicle) {
             return back()
                 ->withErrors([
-                    'plate' => "Este vehículo ya se encuentra registrado en la plataforma. Por seguridad y privacidad, no puede ser reasignado directamente ni es posible consultar su información por placa. El usuario o cliente que actualmente lo tiene asignado debe darlo de baja desde su cuenta; al realizar la baja, todo el historial previo se eliminará permanentemente para permitir un nuevo registro limpio."
+                    'plate' => 'Este vehículo ya se encuentra registrado en la plataforma. Por seguridad y privacidad, no puede ser reasignado directamente ni es posible consultar su información por placa. El usuario o cliente que actualmente lo tiene asignado debe darlo de baja desde su cuenta; al realizar la baja, todo el historial previo se eliminará permanentemente para permitir un nuevo registro limpio.',
                 ])
                 ->withInput();
         }
 
         if ($request->hasFile('photo')) {
-            $data['photo_path'] = $request->file('photo')->store('vehicles/' . $companyId, 'public');
+            $data['photo_path'] = $request->file('photo')->store('vehicles/'.$companyId, 'public');
         }
 
         $vehicle = Vehicle::create($data);
@@ -100,7 +104,7 @@ class VehicleController extends Controller
 
         $vehicle->load(['customer', 'company', 'maintenanceOrders' => fn ($q) => $q->latest('service_date')]);
 
-        $reminderService = app(\App\Services\MaintenanceReminderService::class);
+        $reminderService = app(MaintenanceReminderService::class);
         $nextMaintenance = $reminderService->getVehicleReminder($vehicle);
 
         return view('vehicles.show', compact('vehicle', 'nextMaintenance'));
@@ -138,7 +142,7 @@ class VehicleController extends Controller
             if ($vehicle->photo_path && Storage::disk('public')->exists($vehicle->photo_path)) {
                 Storage::disk('public')->delete($vehicle->photo_path);
             }
-            $data['photo_path'] = $request->file('photo')->store('vehicles/' . $customer->company_id, 'public');
+            $data['photo_path'] = $request->file('photo')->store('vehicles/'.$customer->company_id, 'public');
         }
 
         $vehicle->update($data);
@@ -164,8 +168,8 @@ class VehicleController extends Controller
             // Eliminar evidencias fotográficas de sus órdenes
             $orderIds = $vehicle->maintenanceOrders()->pluck('id');
             if ($orderIds->isNotEmpty()) {
-                \App\Domain\Maintenance\Models\MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)->delete();
-                \App\Domain\Maintenance\Models\MaintenanceOrder::whereIn('id', $orderIds)->forceDelete();
+                MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)->delete();
+                MaintenanceOrder::whereIn('id', $orderIds)->forceDelete();
             }
 
             // Eliminar definitivamente el vehículo para que la placa quede libre para nuevo registro limpio
@@ -198,7 +202,7 @@ class VehicleController extends Controller
      */
     protected function authorizeCustomerAccess($currentUser, Customer $customer): void
     {
-        if ($currentUser->role === 'company_admin' && (int)$customer->company_id !== (int)$currentUser->company_id) {
+        if ($currentUser->role === 'company_admin' && (int) $customer->company_id !== (int) $currentUser->company_id) {
             abort(403, 'No tienes autorización para gestionar vehículos de otra empresa.');
         }
     }
@@ -208,7 +212,9 @@ class VehicleController extends Controller
      */
     protected function authorizeVehicleAccess($currentUser, Vehicle $vehicle): void
     {
-        if ($currentUser->role === 'company_admin' && (int)$vehicle->company_id !== (int)$currentUser->company_id) {
+        abort_unless(Vehicle::withConsistentOwnership()->whereKey($vehicle->id)->exists(), 403, 'El vehículo no está disponible en esta empresa.');
+
+        if ($currentUser->role === 'company_admin' && (int) $vehicle->company_id !== (int) $currentUser->company_id) {
             abort(403, 'No tienes autorización para acceder a vehículos de otra empresa.');
         }
     }

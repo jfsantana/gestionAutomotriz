@@ -5,11 +5,14 @@ namespace App\Domain\Vehicles\Models;
 use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\ValidationException;
 
 class Vehicle extends Model
 {
@@ -78,6 +81,9 @@ class Vehicle extends Model
         });
 
         static::updating(function (Vehicle $vehicle) {
+            if ($vehicle->isDirty('customer_id')) {
+                throw ValidationException::withMessages(['customer_id' => 'No se puede reasignar un vehículo a otro cliente. Debe darse de baja antes de un nuevo registro.']);
+            }
             $customerId = $vehicle->customer_id ?: $vehicle->getOriginal('customer_id');
             if ($customerId) {
                 $customer = Customer::find($customerId);
@@ -112,6 +118,15 @@ class Vehicle extends Model
      */
     public function maintenanceOrders(): HasMany
     {
-        return $this->hasMany(MaintenanceOrder::class, 'vehicle_id');
+        return $this->hasMany(MaintenanceOrder::class, 'vehicle_id')
+            ->withConsistentOwnership();
+    }
+
+    #[Scope]
+    protected function withConsistentOwnership(Builder $query): void
+    {
+        $query->whereHas('customer', fn (Builder $customer) => $customer
+            ->whereColumn('customers.company_id', 'vehicles.company_id')
+            ->whereHas('company'));
     }
 }

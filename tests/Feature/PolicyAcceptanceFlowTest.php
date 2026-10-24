@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Companies\Models\Company;
 use App\Domain\Users\Models\PlatformPolicy;
 use App\Domain\Users\Models\UserPolicyAcceptance;
 use App\Models\User;
@@ -24,9 +25,11 @@ class PolicyAcceptanceFlowTest extends TestCase
         $this->seed(PlatformPolicySeeder::class);
         $this->policy = PlatformPolicy::activePolicy();
 
+        $company = Company::create(['name' => 'Taller políticas', 'slug' => 'policy-workshop', 'status' => 'active']);
         $this->user = User::factory()->create([
             'username' => 'usuario_prueba',
             'role' => 'company_admin',
+            'company_id' => $company->id,
             'is_active' => true,
         ]);
     }

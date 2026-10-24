@@ -27,6 +27,7 @@ class MaintenanceOrderController extends Controller
         $currentUser = $request->user();
 
         $query = MaintenanceOrder::query()
+            ->withConsistentOwnership()
             ->with(['customer', 'vehicle', 'mechanic', 'company', 'registeredByUser']);
 
         if (in_array($currentUser->role, ['company_admin', 'mechanic'], true)) {
@@ -44,7 +45,7 @@ class MaintenanceOrderController extends Controller
         $companyId = $currentUser->company_id;
 
         $preselectedVehicleId = $request->input('vehicle_id');
-        $preselectedVehicle = $preselectedVehicleId ? Vehicle::find($preselectedVehicleId) : null;
+        $preselectedVehicle = $preselectedVehicleId ? Vehicle::withConsistentOwnership()->findOrFail($preselectedVehicleId) : null;
 
         if ($preselectedVehicle && $currentUser->role !== 'super_admin' && (int) $preselectedVehicle->company_id !== (int) $companyId) {
             abort(403);
@@ -56,6 +57,7 @@ class MaintenanceOrderController extends Controller
             ->get(['id', 'full_name']);
 
         $vehicles = Vehicle::query()
+            ->withConsistentOwnership()
             ->when($currentUser->role !== 'super_admin', fn ($q) => $q->where('company_id', $companyId))
             ->orderBy('plate')
             ->get(['id', 'customer_id', 'plate', 'make', 'model', 'current_mileage']);
@@ -98,11 +100,10 @@ class MaintenanceOrderController extends Controller
             return back()->withErrors(['vehicle_id' => 'El vehículo seleccionado no pertenece al cliente especificado.'])->withInput();
         }
 
-        $companyId = $currentUser->role === 'super_admin'
-            ? ($data['company_id'] ?? $vehicle->company_id)
-            : $currentUser->company_id;
+        $companyId = $customer->company_id;
 
-        if ((int) $vehicle->company_id !== (int) $companyId) {
+        if ((int) $vehicle->company_id !== (int) $companyId
+            || ($currentUser->role !== 'super_admin' && (int) $companyId !== (int) $currentUser->company_id)) {
             abort(403, 'El vehículo pertenece a otra empresa.');
         }
 
@@ -244,8 +245,12 @@ class MaintenanceOrderController extends Controller
 
     protected function authorizeOrderAccess($currentUser, MaintenanceOrder $order): void
     {
-        if (in_array($currentUser->role, ['company_admin', 'mechanic'], true) && (int) $order->company_id !== (int) $currentUser->company_id) {
-            abort(403, 'No tienes autorización para acceder a órdenes de otra empresa.');
-        }
+        abort_unless(
+            in_array($currentUser->role, ['super_admin', 'company_admin', 'mechanic'], true)
+            && ($currentUser->role === 'super_admin' || ($currentUser->company_id && (int) $order->company_id === (int) $currentUser->company_id))
+            && MaintenanceOrder::withConsistentOwnership()->whereKey($order->id)->exists(),
+            403,
+            'No tienes autorización para acceder a esta orden.'
+        );
     }
 }

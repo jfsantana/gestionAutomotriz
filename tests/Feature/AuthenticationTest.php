@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Companies\Models\Company;
 use App\Models\User;
 use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -46,8 +47,10 @@ class AuthenticationTest extends TestCase
     #[TestWith(['/maintenance-orders'])]
     public function test_company_admin_login_always_opens_company_dashboard(?string $intendedPath): void
     {
+        $company = Company::create(['name' => 'Taller autenticación', 'slug' => 'auth-workshop', 'status' => 'active']);
         $user = User::factory()->create([
             'role' => 'company_admin',
+            'company_id' => $company->id,
             'is_active' => true,
         ]);
         if ($intendedPath !== null) {

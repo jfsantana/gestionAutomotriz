@@ -6,6 +6,8 @@ use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
 use App\Http\Requests\Customers\StoreCustomerRequest;
 use App\Http\Requests\Customers\UpdateCustomerRequest;
+use App\Services\CustomerOwnershipService;
+use App\Services\MaintenanceReminderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -71,12 +73,12 @@ class CustomerController extends Controller
 
         // Si se solicitó acceso al portal y tiene email, disparar invitación
         if ($enablePortal && $customer->email) {
-            app(\App\Http\Controllers\CustomerInvitationController::class)->send($request, $customer);
+            app(CustomerInvitationController::class)->send($request, $customer);
         }
 
         return redirect()
             ->route('customers.show', $customer)
-            ->with('success', "Cliente '{$customer->full_name}' registrado exitosamente." . ($enablePortal && $customer->email ? " Se ha enviado la invitación de acceso al portal a {$customer->email}." : ""));
+            ->with('success', "Cliente '{$customer->full_name}' registrado exitosamente.".($enablePortal && $customer->email ? " Se ha enviado la invitación de acceso al portal a {$customer->email}." : ''));
     }
 
     /**
@@ -88,7 +90,7 @@ class CustomerController extends Controller
 
         $customer->load(['company', 'vehicles' => fn ($q) => $q->latest('id')]);
 
-        $reminderService = app(\App\Services\MaintenanceReminderService::class);
+        $reminderService = app(MaintenanceReminderService::class);
         $vehicleReminders = [];
         $hasAlerts = false;
 
@@ -123,7 +125,7 @@ class CustomerController extends Controller
     /**
      * Actualiza los datos del cliente.
      */
-    public function update(UpdateCustomerRequest $request, Customer $customer): RedirectResponse
+    public function update(UpdateCustomerRequest $request, Customer $customer, CustomerOwnershipService $ownership): RedirectResponse
     {
         $this->authorizeCustomerAccess($request->user(), $customer);
 
@@ -133,11 +135,14 @@ class CustomerController extends Controller
             unset($data['company_id']);
         }
 
-        $customer->update($data);
+        $transferred = isset($data['company_id']) && (int) $data['company_id'] !== (int) $customer->company_id;
+        $ownership->update($customer, $data);
 
         return redirect()
             ->route('customers.show', $customer)
-            ->with('success', "Datos del cliente '{$customer->full_name}' actualizados correctamente.");
+            ->with('success', $transferred
+                ? 'Cliente trasladado con todos sus vehículos e historial. Se desvincularon las referencias a personal y servicios de la empresa anterior.'
+                : "Datos del cliente '{$customer->full_name}' actualizados correctamente.");
     }
 
     /**
@@ -160,7 +165,7 @@ class CustomerController extends Controller
      */
     protected function authorizeCustomerAccess($currentUser, Customer $customer): void
     {
-        if ($currentUser->role === 'company_admin' && (int)$customer->company_id !== (int)$currentUser->company_id) {
+        if ($currentUser->role === 'company_admin' && (int) $customer->company_id !== (int) $currentUser->company_id) {
             abort(403, 'No tienes autorización para acceder a clientes de otra empresa.');
         }
     }

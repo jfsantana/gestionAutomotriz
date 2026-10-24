@@ -6,17 +6,21 @@ use App\Domain\Maintenance\Models\MaintenanceOrder;
 use App\Domain\Vehicles\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 
 class MaintenanceReminderService
 {
     public const STATUS_OVERDUE = 'overdue';
+
     public const STATUS_DUE_SOON = 'due_soon';
+
     public const STATUS_UPCOMING = 'upcoming';
+
     public const STATUS_NO_SCHEDULE = 'completed_without_schedule';
+
     public const STATUS_NOT_APPLICABLE = 'not_applicable';
 
     public const DAYS_THRESHOLD = 30;
+
     public const MILEAGE_THRESHOLD = 1000;
 
     /**
@@ -121,13 +125,8 @@ class MaintenanceReminderService
      */
     public function getVehicleReminder(Vehicle $vehicle): ?array
     {
-        $latestOrder = MaintenanceOrder::query()
+        $latestOrder = $this->scheduledOrdersQuery($vehicle->company_id)
             ->where('vehicle_id', $vehicle->id)
-            ->where('status', 'completed')
-            ->where(function (Builder $q) {
-                $q->whereNotNull('next_due_date')
-                    ->orWhereNotNull('next_due_mileage');
-            })
             ->latest('service_date')
             ->latest('id')
             ->first();
@@ -149,14 +148,8 @@ class MaintenanceReminderService
      */
     public function getCompanySummary(?int $companyId): array
     {
-        $orders = MaintenanceOrder::query()
+        $orders = $this->scheduledOrdersQuery($companyId)
             ->with(['vehicle', 'customer'])
-            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
-            ->where('status', 'completed')
-            ->where(function (Builder $q) {
-                $q->whereNotNull('next_due_date')
-                    ->orWhereNotNull('next_due_mileage');
-            })
             ->get();
 
         $overdueCount = 0;
@@ -180,5 +173,21 @@ class MaintenanceReminderService
             'upcoming' => $upcomingCount,
             'total_scheduled' => $overdueCount + $dueSoonCount + $upcomingCount,
         ];
+    }
+
+    /**
+     * Un companyId nulo se reserva para consultas globales del superadministrador o consola.
+     *
+     * @return Builder<MaintenanceOrder>
+     */
+    public function scheduledOrdersQuery(?int $companyId): Builder
+    {
+        return MaintenanceOrder::query()
+            ->withConsistentOwnership()
+            ->when($companyId !== null, fn (Builder $query) => $query->where('maintenance_orders.company_id', $companyId))
+            ->where('status', 'completed')
+            ->where(function (Builder $query): void {
+                $query->whereNotNull('next_due_date')->orWhereNotNull('next_due_mileage');
+            });
     }
 }

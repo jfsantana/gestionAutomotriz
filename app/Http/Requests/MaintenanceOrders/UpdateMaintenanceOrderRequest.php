@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\MaintenanceOrders;
 
+use App\Domain\Maintenance\Models\MaintenanceOrder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,12 @@ class UpdateMaintenanceOrderRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        return $user && in_array($user->role, ['super_admin', 'company_admin', 'mechanic'], true);
+        $order = $this->route('maintenance_order');
+
+        return $user && $order instanceof MaintenanceOrder
+            && in_array($user->role, ['super_admin', 'company_admin', 'mechanic'], true)
+            && ($user->role === 'super_admin' || ($user->company_id && (int) $order->company_id === (int) $user->company_id))
+            && MaintenanceOrder::withConsistentOwnership()->whereKey($order->id)->exists();
     }
 
     public function rules(): array
@@ -23,9 +29,7 @@ class UpdateMaintenanceOrderRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('users', 'id')->where(function ($q) use ($effectiveCompanyId) {
-                    if ($effectiveCompanyId) {
-                        $q->where('company_id', $effectiveCompanyId);
-                    }
+                    $q->where('company_id', $effectiveCompanyId);
                     $q->where('role', 'mechanic');
                 }),
             ],

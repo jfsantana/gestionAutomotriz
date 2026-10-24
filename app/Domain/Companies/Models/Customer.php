@@ -65,7 +65,7 @@ class Customer extends Model
      */
     public function vehicles(): HasMany
     {
-        return $this->hasMany(Vehicle::class, 'customer_id')->where('customer_status', 'ACTIVE');
+        return $this->hasMany(Vehicle::class, 'customer_id')->withConsistentOwnership()->where('customer_status', 'ACTIVE');
     }
 
     /**
@@ -73,7 +73,7 @@ class Customer extends Model
      */
     public function allVehicles(): HasMany
     {
-        return $this->hasMany(Vehicle::class, 'customer_id');
+        return $this->hasMany(Vehicle::class, 'customer_id')->withConsistentOwnership();
     }
 
     /**

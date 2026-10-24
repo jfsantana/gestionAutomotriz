@@ -3,7 +3,6 @@
 namespace App\Http\Requests\MaintenanceOrders;
 
 use App\Domain\Companies\Models\Customer;
-use App\Domain\Vehicles\Models\Vehicle;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,6 +11,7 @@ class StoreMaintenanceOrderRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+
         return $user && in_array($user->role, ['super_admin', 'company_admin', 'mechanic'], true);
     }
 
@@ -19,7 +19,7 @@ class StoreMaintenanceOrderRequest extends FormRequest
     {
         $currentUser = $this->user();
         $effectiveCompanyId = $currentUser->role === 'super_admin'
-            ? $this->input('company_id')
+            ? Customer::find($this->integer('customer_id'))?->company_id
             : $currentUser->company_id;
 
         return [
@@ -27,9 +27,7 @@ class StoreMaintenanceOrderRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('customers', 'id')->where(function ($q) use ($effectiveCompanyId) {
-                    if ($effectiveCompanyId) {
-                        $q->where('company_id', $effectiveCompanyId);
-                    }
+                    $q->where('company_id', $effectiveCompanyId);
                     $q->whereNull('deleted_at');
                 }),
             ],
@@ -37,9 +35,7 @@ class StoreMaintenanceOrderRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('vehicles', 'id')->where(function ($q) use ($effectiveCompanyId) {
-                    if ($effectiveCompanyId) {
-                        $q->where('company_id', $effectiveCompanyId);
-                    }
+                    $q->where('company_id', $effectiveCompanyId)->where('customer_id', $this->integer('customer_id'));
                     $q->whereNull('deleted_at');
                 }),
             ],
@@ -47,9 +43,7 @@ class StoreMaintenanceOrderRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('services', 'id')->where(function ($q) use ($effectiveCompanyId) {
-                    if ($effectiveCompanyId) {
-                        $q->where('company_id', $effectiveCompanyId);
-                    }
+                    $q->where('company_id', $effectiveCompanyId);
                     $q->whereNull('deleted_at');
                 }),
             ],
@@ -57,9 +51,7 @@ class StoreMaintenanceOrderRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('users', 'id')->where(function ($q) use ($effectiveCompanyId) {
-                    if ($effectiveCompanyId) {
-                        $q->where('company_id', $effectiveCompanyId);
-                    }
+                    $q->where('company_id', $effectiveCompanyId);
                     $q->where('role', 'mechanic');
                 }),
             ],

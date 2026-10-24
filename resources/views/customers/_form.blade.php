@@ -100,6 +100,9 @@
             @error('company_id')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
+            @if($customer->exists)
+                <p class="form-text mb-0">Cambiar de empresa trasladará conjuntamente al cliente, sus vehículos, historial y acceso al portal. Se conservarán los detalles de los servicios, pero se desvincularán el personal y el catálogo de la empresa anterior.</p>
+            @endif
         </div>
     @endif
 

@@ -2,7 +2,13 @@
 
 namespace App\Providers;
 
+use App\Domain\Maintenance\Models\MaintenanceOrder;
+use App\Domain\Users\Models\PlatformPolicy;
+use App\Domain\Users\Models\UserPolicyAcceptance;
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,12 +28,17 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
-        \Illuminate\Support\Facades\View::composer('*', function ($view) {
-            $policy = \App\Domain\Users\Models\PlatformPolicy::activePolicy();
+        Gate::define('send-maintenance-reminder', fn (User $user, MaintenanceOrder $order): bool => $user->is_active
+            && $user->role === 'company_admin'
+            && $user->company_id !== null
+            && (int) $user->company_id === (int) $order->company_id);
+
+        View::composer('*', function ($view) {
+            $policy = PlatformPolicy::activePolicy();
             $acceptance = null;
 
             if (auth()->check() && $policy) {
-                $acceptance = \App\Domain\Users\Models\UserPolicyAcceptance::where('user_id', auth()->id())
+                $acceptance = UserPolicyAcceptance::where('user_id', auth()->id())
                     ->where('platform_policy_id', $policy->id)
                     ->first();
             }
@@ -37,4 +48,3 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 }
-

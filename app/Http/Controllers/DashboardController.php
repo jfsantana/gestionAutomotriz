@@ -75,6 +75,7 @@ class DashboardController extends Controller
 
         $openOrdersCount = $companyId
             ? MaintenanceOrder::where('company_id', $companyId)
+                ->withConsistentOwnership()
                 ->whereNotIn('status', ['completed', 'cancelled'])
                 ->count()
             : 0;
@@ -88,14 +89,8 @@ class DashboardController extends Controller
         $upcomingReminders = new LengthAwarePaginator([], 0, 5);
 
         if ($companyId) {
-            $orders = MaintenanceOrder::query()
+            $orders = $this->reminderService->scheduledOrdersQuery($companyId)
                 ->with(['customer', 'vehicle', 'service'])
-                ->where('company_id', $companyId)
-                ->where('status', 'completed')
-                ->where(function ($q) {
-                    $q->whereNotNull('next_due_date')
-                        ->orWhereNotNull('next_due_mileage');
-                })
                 ->latest('service_date')
                 ->get();
 

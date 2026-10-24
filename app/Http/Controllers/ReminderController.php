@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Maintenance\Models\MaintenanceOrder;
+use App\Services\MaintenanceReminderNotificationService;
 use App\Services\MaintenanceReminderService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class ReminderController extends Controller
 {
@@ -14,24 +18,26 @@ class ReminderController extends Controller
         protected MaintenanceReminderService $reminderService
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request, MaintenanceReminderNotificationService $notifications): View
     {
         $currentUser = $request->user();
+        abort_unless(
+            in_array($currentUser->role, ['super_admin', 'company_admin', 'mechanic'], true),
+            403,
+            'No tienes autorización para acceder a los recordatorios del taller.'
+        );
+
+        if ($currentUser->role !== 'super_admin') {
+            abort_unless($currentUser->company_id && $currentUser->company, 403, 'No tienes una empresa asociada disponible.');
+        }
+
+        $companyId = $currentUser->role === 'super_admin' ? null : $currentUser->company_id;
         $statusFilter = $request->input('status');
         $searchPlate = $request->input('plate');
         $searchCustomer = $request->input('customer');
 
-        $query = MaintenanceOrder::query()
-            ->with(['customer', 'vehicle', 'company', 'mechanic'])
-            ->where('status', 'completed')
-            ->where(function ($q) {
-                $q->whereNotNull('next_due_date')
-                    ->orWhereNotNull('next_due_mileage');
-            });
-
-        if (in_array($currentUser->role, ['company_admin', 'mechanic'], true)) {
-            $query->where('company_id', $currentUser->company_id);
-        }
+        $query = $this->reminderService->scheduledOrdersQuery($companyId)
+            ->with(['customer', 'vehicle', 'company.currentSubscription']);
 
         if ($searchPlate) {
             $query->whereHas('vehicle', fn ($q) => $q->where('plate', 'like', "%{$searchPlate}%"));
@@ -44,9 +50,12 @@ class ReminderController extends Controller
         $allOrders = $query->latest('service_date')->get();
 
         // Evaluar cada orden y adjuntar su estado calculado
-        $evaluatedItems = $allOrders->map(function ($order) {
+        $evaluatedItems = $allOrders->map(function ($order) use ($notifications) {
             $evaluation = $this->reminderService->evaluateOrder($order);
             $order->reminder = $evaluation;
+            $order->reminder_email_error = $notifications->unavailableReason($order)
+                ?? ($notifications->wasSentToday($order) ? MaintenanceReminderNotificationService::ALREADY_SENT : null);
+
             return $order;
         });
 
@@ -70,10 +79,24 @@ class ReminderController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        $summary = $this->reminderService->getCompanySummary(
-            $currentUser->role === 'super_admin' ? null : $currentUser->company_id
-        );
+        $summary = $this->reminderService->getCompanySummary($companyId);
 
         return view('reminders.index', compact('reminders', 'summary', 'statusFilter', 'searchPlate', 'searchCustomer'));
+    }
+
+    public function send(MaintenanceOrder $order, MaintenanceReminderNotificationService $notifications): RedirectResponse
+    {
+        Gate::authorize('send-maintenance-reminder', $order);
+
+        try {
+            $sent = $notifications->send($order);
+        } catch (TransportExceptionInterface $exception) {
+            return back()->with('error', MaintenanceReminderNotificationService::DELIVERY_ERROR);
+        }
+
+        return back()->with(
+            $sent ? 'success' : 'info',
+            $sent ? 'Recordatorio enviado al correo del cliente.' : MaintenanceReminderNotificationService::ALREADY_SENT
+        );
     }
 }

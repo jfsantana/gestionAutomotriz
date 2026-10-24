@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CustomerInvitationController extends Controller
 {
@@ -21,7 +22,7 @@ class CustomerInvitationController extends Controller
     {
         $currentUser = $request->user();
 
-        if ($currentUser->role === 'company_admin' && (int)$customer->company_id !== (int)$currentUser->company_id) {
+        if ($currentUser->role === 'company_admin' && (int) $customer->company_id !== (int) $currentUser->company_id) {
             abort(403, 'No tienes autorización sobre los clientes de otra empresa.');
         }
 
@@ -32,9 +33,13 @@ class CustomerInvitationController extends Controller
         $company = $customer->company;
 
         // 1. Obtener o crear el usuario con rol customer
-        $user = User::where('customer_id', $customer->id)
-            ->orWhere('email', $customer->email)
-            ->first();
+        $user = User::where('customer_id', $customer->id)->where('role', 'customer')->first();
+        if (User::where('email', $customer->email)->when($user, fn ($query) => $query->whereKeyNot($user->id))->exists()
+            || ($user && (int) $user->company_id !== (int) $customer->company_id)) {
+            throw ValidationException::withMessages([
+                'email' => 'No se puede habilitar el portal con este correo sin reasignar una cuenta existente. Revisa los datos del cliente.',
+            ]);
+        }
 
         if (! $user) {
             $baseUsername = Str::slug($customer->full_name);

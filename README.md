@@ -119,6 +119,53 @@ resources/
 
 ## 5. Verificación y Pruebas Locales
 
+### Recordatorios de mantenimiento por email
+
+- Envío automático a las **08:00 de America/Caracas**, exactamente **dos días calendario antes** de `next_due_date`.
+- Solo se notifican órdenes del taller completadas, con cliente y vehículo disponibles y una empresa operativa. Los registros personales del cliente y vehículos dados de baja no se notifican.
+- En **Recordatorios → Acciones**, únicamente un administrador activo de la empresa propietaria puede usar **Enviar recordatorio**. No está permitido para mecánicos, clientes ni superadministradores.
+- La lista, los filtros, los contadores y los recordatorios del dashboard/vehículo validan que la orden, el cliente y el vehículo pertenezcan a la misma empresa y que el vehículo corresponda al cliente. La misma protección se aplica a las órdenes, sus detalles y los historiales. Los registros inconsistentes se excluyen hasta reconciliarse: no se debe resolver el problema únicamente ocultándolos. Los clientes no pueden acceder a los módulos administrativos y el personal sin empresa no obtiene una vista global. Solo el superadministrador conserva la vista global de registros coherentes.
+- El envío manual admite vencimientos futuros, vencidos o solo por kilometraje. No se puede calcular un aviso automático de dos días para un vencimiento sin fecha.
+- Ambos canales comparten el límite de **un correo por orden y día en Caracas**, aun si cambia la fecha de vencimiento. Se muestra el último envío y se bloquean nuevos envíos ese día.
+- Se envía al email del cliente, sin copias. El mensaje contiene los detalles del mantenimiento, contacto del taller y acceso al portal; no confirma una cita.
+
+**Puesta en marcha:**
+
+1. Ejecuta `php artisan migrate` para agregar el registro del último envío y el índice de vencimientos.
+2. Configura `APP_URL` con la URL pública y las variables `MAIL_*` con un transporte real (por ejemplo SMTP). El transporte `log` solo escribe en el registro; no entrega correos.
+3. En el Programador de tareas de Windows, ejecuta `php artisan schedule:run` **cada minuto**, usando la ruta absoluta de PHP y esta carpeta como directorio de inicio. La aplicación programa internamente las 08:00 de Caracas, independientemente de la zona del servidor.
+4. Comprueba la programación con `php artisan schedule:list`. No se requiere un trabajador de colas: el envío es síncrono, como las notificaciones existentes.
+
+Comando de envío (envía correos reales si el transporte está configurado):
+
+```powershell
+php artisan maintenance:send-reminders
+php artisan maintenance:send-reminders --company=1
+```
+
+El comando se puede repetir el mismo día: omite órdenes ya notificadas. Los fallos se muestran por orden y devuelven código de salida no exitoso sin impedir el procesamiento de las demás. La ejecución programada guarda su salida en `storage/logs/maintenance-reminders.log`; los errores de transporte también se reportan al registro de Laravel. Si el servidor está apagado a las 08:00, ejecuta el comando ese mismo día; no envía avisos atrasados de días anteriores.
+
+La marca `reminder_sent_at` se guarda tras aceptar el mensaje el transporte, bajo bloqueo de base de datos para serializar envíos simultáneos. Esto no acredita recepción en la bandeja de entrada. Ante un fallo de conexión ambiguo o una interrupción entre la aceptación SMTP y el guardado, verifica los registros del proveedor antes de reintentar para evitar posibles duplicados. La reversión de la migración elimina las marcas de envío.
+
+### Regla de pertenencia y traslado de clientes
+
+**Empresa → Cliente → N vehículos → Historial de mantenimiento.** La empresa del cliente es la referencia. Crear un vehículo o una orden no permite elegir una empresa distinta ni asociar vehículos de otro cliente. Los servicios y mecánicos deben pertenecer a esa misma empresa.
+
+El administrador de un taller solo consulta y gestiona sus clientes y vehículos. No puede trasladarlos mediante parámetros manipulados. Tampoco es posible apropiarse de una cuenta de otra empresa al invitar a un cliente con el mismo correo.
+
+El **superadministrador** puede cambiar la empresa al editar un cliente. La actualización traslada, en una sola transacción, el cliente, todos sus vehículos, órdenes (incluidos registros con baja lógica), cuenta de cliente e invitaciones del portal. Se conservan fechas, importes, observaciones, textos históricos de servicios y fotografías. Se desvinculan las referencias a catálogo, mecánicos y usuarios registradores de otras empresas; se preservan los registradores superadministradores. No se envían correos por trasladar o reconciliar.
+
+Si una placa ya existe en la empresa destino o hay órdenes cuyo cliente no corresponde al vehículo, se rechaza la operación completa sin aplicar un traslado parcial.
+
+Para datos históricos cuya empresa no coincide con la del cliente:
+
+```powershell
+php artisan ownership:reconcile-customer 2
+php artisan ownership:reconcile-customer 2 --apply
+```
+
+Sin `--apply` solo muestra el alcance. Con `--apply` alinea las asociaciones seguras con la empresa actual del cliente y deja un registro de auditoría en el log de Laravel. No cambia el propietario de un vehículo ni adivina a qué cliente corresponde una orden ambigua; esos casos requieren revisión.
+
 ### 5.1. Ejecutar las pruebas automatizadas
 Para validar que el endpoint técnico y las vistas responden correctamente:
 

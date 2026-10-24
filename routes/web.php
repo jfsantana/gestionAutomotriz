@@ -1,14 +1,19 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\ClientActivationController;
 use App\Http\Controllers\CompanyAdminController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanySubscriptionController;
 use App\Http\Controllers\CompanySubscriptionStatusController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerInvitationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\MaintenanceOrderController;
+use App\Http\Controllers\PolicyController;
+use App\Http\Controllers\Portal\ClientPortalController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
@@ -31,21 +36,21 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
     // Activación y Creación de Contraseña del Cliente Invitado (Vía Token de Correo)
-    Route::get('portal/activate/{token}', [\App\Http\Controllers\ClientActivationController::class, 'show'])->name('portal.activate.show');
-    Route::post('portal/activate/{token}', [\App\Http\Controllers\ClientActivationController::class, 'activate'])->name('portal.activate.submit');
+    Route::get('portal/activate/{token}', [ClientActivationController::class, 'show'])->name('portal.activate.show');
+    Route::post('portal/activate/{token}', [ClientActivationController::class, 'activate'])->name('portal.activate.submit');
 });
 
 // Rutas protegidas (autenticadas)
 Route::middleware('auth')->group(function () {
     // Pantalla de Aceptación Obligatoria de Políticas (vía middleware EnsurePolicyAccepted)
-    Route::get('policies/terms-and-conditions', [\App\Http\Controllers\PolicyController::class, 'show'])->name('policy.show');
-    Route::post('policies/accept', [\App\Http\Controllers\PolicyController::class, 'accept'])->name('policy.accept');
+    Route::get('policies/terms-and-conditions', [PolicyController::class, 'show'])->name('policy.show');
+    Route::post('policies/accept', [PolicyController::class, 'accept'])->name('policy.accept');
 
-    Route::get('/', [DashboardController::class, 'index'])->name('home');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->middleware('workshop')->name('home');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('workshop')->name('dashboard');
 
     // Dashboard temporal para Usuario de Empresa
-    Route::get('/company/dashboard', [DashboardController::class, 'company'])->name('company.dashboard');
+    Route::get('/company/dashboard', [DashboardController::class, 'company'])->middleware('workshop')->name('company.dashboard');
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
@@ -70,12 +75,12 @@ Route::middleware('auth')->group(function () {
     });
 
     // Módulos operativos protegidos por estado de suscripción activa de la empresa
-    Route::middleware('subscription.active')->group(function () {
+    Route::middleware(['workshop', 'subscription.active'])->group(function () {
         // Módulos para company_admin
         Route::middleware('company_admin')->group(function () {
             // Perfil e Identidad del Taller (Logotipo y Paleta de colores)
-            Route::get('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'edit'])->name('company.profile.edit');
-            Route::put('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'update'])->name('company.profile.update');
+            Route::get('company-profile', [CompanyProfileController::class, 'edit'])->name('company.profile.edit');
+            Route::put('company-profile', [CompanyProfileController::class, 'update'])->name('company.profile.update');
 
             // Personal interno (Staff / Mecánicos)
             Route::patch('staff/{staff}/toggle-status', [StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
@@ -86,7 +91,10 @@ Route::middleware('auth')->group(function () {
             Route::resource('services', ServiceController::class)->except(['show', 'destroy']);
 
             // Clientes y Propietarios
-            Route::post('customers/{customer}/invite', [\App\Http\Controllers\CustomerInvitationController::class, 'send'])->name('customers.invite');
+            Route::post('reminders/{order}/send', [ReminderController::class, 'send'])
+                ->middleware('throttle:10,1')
+                ->name('reminders.send');
+            Route::post('customers/{customer}/invite', [CustomerInvitationController::class, 'send'])->name('customers.invite');
             Route::resource('customers', CustomerController::class);
 
             // Flujo contextual de vehículos por cliente
@@ -107,26 +115,24 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('customer.only')->prefix('portal')->name('portal.')->group(function () {
         // 1. Inicio / Resumen
-        Route::get('/', [\App\Http\Controllers\Portal\ClientPortalController::class, 'dashboard'])->name('dashboard');
+        Route::get('/', [ClientPortalController::class, 'dashboard'])->name('dashboard');
 
         // 2. Mis Vehículos y Baja Lógica
-        Route::get('vehicles', [\App\Http\Controllers\Portal\ClientPortalController::class, 'vehicles'])->name('vehicles.index');
-        Route::get('vehicles/{vehicle}', [\App\Http\Controllers\Portal\ClientPortalController::class, 'vehicleShow'])->name('vehicles.show');
-        Route::post('vehicles/{vehicle}/decommission', [\App\Http\Controllers\Portal\ClientPortalController::class, 'decommissionVehicle'])->name('vehicles.decommission');
+        Route::get('vehicles', [ClientPortalController::class, 'vehicles'])->name('vehicles.index');
+        Route::get('vehicles/{vehicle}', [ClientPortalController::class, 'vehicleShow'])->name('vehicles.show');
+        Route::post('vehicles/{vehicle}/decommission', [ClientPortalController::class, 'decommissionVehicle'])->name('vehicles.decommission');
 
         // 3. Historial de Mantenimientos
-        Route::get('maintenance', [\App\Http\Controllers\Portal\ClientPortalController::class, 'maintenanceHistory'])->name('maintenance.index');
+        Route::get('maintenance', [ClientPortalController::class, 'maintenanceHistory'])->name('maintenance.index');
 
         // 4. Registrar Mantenimiento Propio / Personal
-        Route::get('maintenance/create-personal', [\App\Http\Controllers\Portal\ClientPortalController::class, 'createPersonalMaintenance'])->name('maintenance.create');
-        Route::post('maintenance/create-personal', [\App\Http\Controllers\Portal\ClientPortalController::class, 'storePersonalMaintenance'])->name('maintenance.store');
+        Route::get('maintenance/create-personal', [ClientPortalController::class, 'createPersonalMaintenance'])->name('maintenance.create');
+        Route::post('maintenance/create-personal', [ClientPortalController::class, 'storePersonalMaintenance'])->name('maintenance.store');
 
         // 5. Mi Cuenta y Seguridad
-        Route::get('account', [\App\Http\Controllers\Portal\ClientPortalController::class, 'account'])->name('account');
-        Route::put('account', [\App\Http\Controllers\Portal\ClientPortalController::class, 'updateAccount'])->name('account.update');
-        Route::put('account/password', [\App\Http\Controllers\Portal\ClientPortalController::class, 'updatePassword'])->name('account.password');
-        Route::post('account/deactivate', [\App\Http\Controllers\Portal\ClientPortalController::class, 'deactivateAccount'])->name('account.deactivate');
+        Route::get('account', [ClientPortalController::class, 'account'])->name('account');
+        Route::put('account', [ClientPortalController::class, 'updateAccount'])->name('account.update');
+        Route::put('account/password', [ClientPortalController::class, 'updatePassword'])->name('account.password');
+        Route::post('account/deactivate', [ClientPortalController::class, 'deactivateAccount'])->name('account.deactivate');
     });
 });
-
-

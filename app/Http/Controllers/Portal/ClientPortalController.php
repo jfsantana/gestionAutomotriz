@@ -41,6 +41,7 @@ class ClientPortalController extends Controller
 
         // Últimos 5 mantenimientos de sus vehículos
         $recentOrders = MaintenanceOrder::where('customer_id', $customer->id)
+            ->withConsistentOwnership()
             ->with(['vehicle'])
             ->latest('service_date')
             ->take(5)
@@ -102,6 +103,7 @@ class ClientPortalController extends Controller
         $tab = $request->input('tab', 'all'); // all, workshop, personal
 
         $query = MaintenanceOrder::where('customer_id', $customer->id)
+            ->withConsistentOwnership()
             ->with(['vehicle', 'service']);
 
         if ($tab === 'workshop') {
@@ -233,7 +235,7 @@ class ClientPortalController extends Controller
 
     protected function authorizeCustomerVehicle($user, Vehicle $vehicle): void
     {
-        if ((int)$vehicle->customer_id !== (int)$user->customer_id) {
+        if ((int) $vehicle->customer_id !== (int) $user->customer_id) {
             abort(403, 'No tienes autorización para consultar este vehículo.');
         }
     }
