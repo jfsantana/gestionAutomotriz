@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -37,6 +38,32 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard'));
+    }
+
+    #[TestWith([null])]
+    #[TestWith(['/dashboard'])]
+    #[TestWith(['/'])]
+    #[TestWith(['/maintenance-orders'])]
+    public function test_company_admin_login_always_opens_company_dashboard(?string $intendedPath): void
+    {
+        $user = User::factory()->create([
+            'role' => 'company_admin',
+            'is_active' => true,
+        ]);
+        if ($intendedPath !== null) {
+            $this->withSession(['url.intended' => url($intendedPath)]);
+        }
+
+        $response = $this->post('/login', [
+            'username' => $user->username,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('company.dashboard'));
+        $response->assertSessionMissing('url.intended');
+        $this->assertNotNull($user->fresh()->last_login_at);
+        $this->get(route('company.dashboard'))->assertOk()->assertViewIs('dashboard.company');
     }
 
     /**

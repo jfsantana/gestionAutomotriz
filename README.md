@@ -161,6 +161,10 @@ El sistema cuenta con un **Portal del Cliente** completamente aislado del menú 
    - **Mi Cuenta:** Edición de datos de contacto, cambio de contraseña y baja voluntaria de la cuenta.
 5. **Aislamiento Estricto:** Un usuario con rol `customer` no puede acceder a las rutas del taller (`/dashboard`, `/staff`, `/companies`, `/customers`, etc.), recibiendo respuesta `403 Prohibido`.
 
+### Inicio del administrador de empresa
+
+El administrador de taller o concesionario (`company_admin`) inicia sesión directamente en `/company/dashboard`, incluso si había una URL pendiente de la sesión anterior. Las rutas generales `/` y `/dashboard` también lo redirigen a ese panel operativo. La aceptación de políticas sigue siendo obligatoria. El acceso del superadministrador, mecánicos y clientes conserva su comportamiento anterior.
+
 ### Avisos de mantenimiento por correo
 
 - Las órdenes del taller/concesionario pueden crearse como **Abierta, En progreso, Completada o Cancelada**. Siempre se intenta notificar al propietario después de guardar la orden y sus evidencias.

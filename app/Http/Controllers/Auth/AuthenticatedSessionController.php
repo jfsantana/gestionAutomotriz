@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Rules\TurnstileRule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class AuthenticatedSessionController extends Controller
         $remember = $request->boolean('remember');
 
         // Permitir autenticarse por username o por email (vital para clientes)
-        $user = \App\Models\User::where('username', $loginValue)
+        $user = User::where('username', $loginValue)
             ->orWhere('email', $loginValue)
             ->first();
 
@@ -77,6 +78,12 @@ class AuthenticatedSessionController extends Controller
         // Redirigir según el rol
         if ($user->role === 'customer') {
             return redirect()->intended(route('portal.dashboard'));
+        }
+
+        if ($user->role === 'company_admin') {
+            $request->session()->forget('url.intended');
+
+            return redirect()->route('company.dashboard');
         }
 
         return redirect()->intended(route('dashboard'));

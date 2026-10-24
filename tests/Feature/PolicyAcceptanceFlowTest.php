@@ -14,6 +14,7 @@ class PolicyAcceptanceFlowTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected PlatformPolicy $policy;
 
     protected function setUp(): void
@@ -74,9 +75,10 @@ class PolicyAcceptanceFlowTest extends TestCase
 
         $this->assertTrue($this->user->fresh()->hasAcceptedCurrentPolicy());
 
-        // Ahora ya puede entrar al dashboard sin redirección
+        // Ahora puede acceder al dashboard operativo de su empresa.
         $responseDashboard = $this->actingAs($this->user)->get('/dashboard');
-        $responseDashboard->assertStatus(200);
+        $responseDashboard->assertRedirect(route('company.dashboard'));
+        $this->get(route('company.dashboard'))->assertOk()->assertViewIs('dashboard.company');
     }
 
     /**

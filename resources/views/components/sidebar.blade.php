@@ -1,4 +1,4 @@
-<aside class="sidebar bg-white border-end d-flex flex-column justify-content-between" id="appSidebar">
+<aside class="sidebar {{ request()->routeIs('company.dashboard') && auth()->user()?->role === 'company_admin' ? 'sidebar-company' : 'bg-white' }} border-end d-flex flex-column justify-content-between" id="appSidebar">
     <div class="pt-3 px-2 flex-grow-1 overflow-auto">
 
         {{-- SECCIÓN 1: PRINCIPAL --}}
@@ -8,7 +8,7 @@
             </div>
             <ul class="nav flex-column mt-1">
                 <li class="nav-item mb-1">
-                    <a class="nav-link {{ request()->routeIs('dashboard', 'home') ? 'active fw-bold' : '' }}" href="{{ route('dashboard') }}" title="Panel Principal">
+                    <a class="nav-link {{ request()->routeIs('dashboard', 'home', 'company.dashboard') ? 'active fw-bold' : '' }}" href="{{ route(auth()->user()?->role === 'company_admin' ? 'company.dashboard' : 'dashboard') }}" title="Panel Principal">
                         <span class="nav-icon">&#128202;</span>
                         <span class="nav-text">Panel de Control</span>
                     </a>
@@ -175,4 +175,3 @@
         </div>
     @endif
 </aside>
-

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
 use App\Services\Health\SystemHealthService;
 use App\Services\MaintenanceReminderService;
 use App\Services\SubscriptionService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -25,9 +25,13 @@ class DashboardController extends Controller
     /**
      * Muestra la pantalla del Dashboard con el estado del sistema, alertas operativas y suscripciones.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $currentUser = $request->user();
+
+        if ($currentUser?->role === 'company_admin') {
+            return redirect()->route('company.dashboard');
+        }
 
         // Si un cliente intenta entrar al dashboard del taller, redirigir a su portal o abortar
         if ($currentUser && $currentUser->role === 'customer') {
@@ -97,6 +101,7 @@ class DashboardController extends Controller
 
             $filteredReminders = $orders->map(function ($order) {
                 $order->reminder = $this->reminderService->evaluateOrder($order);
+
                 return $order;
             })->filter(function ($order) {
                 $rem = $order->reminder;

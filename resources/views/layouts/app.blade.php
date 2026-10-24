@@ -145,6 +145,45 @@
             border-color: #1a1b29;
         }
 
+        /* Paleta exclusiva del sidebar del dashboard empresa. */
+        #appSidebar.sidebar-company {
+            --bs-border-color: #E5E7EB;
+            --bs-secondary-color: #6B7280;
+            background-color: #F5F7FA;
+            color: #1F2937;
+            border-right-color: #E5E7EB !important;
+        }
+
+        #appSidebar.sidebar-company .sidebar-heading {
+            color: #6B7280;
+        }
+
+        #appSidebar.sidebar-company .nav-link {
+            color: #1F2937;
+        }
+
+        #appSidebar.sidebar-company .nav-link:hover,
+        #appSidebar.sidebar-company .nav-link:focus-visible {
+            background-color: #EAF2FF;
+            color: #0D6EFD;
+        }
+
+        #appSidebar.sidebar-company .nav-link.active {
+            background-color: #DCEBFF;
+            color: #0D6EFD;
+            border-left: 4px solid #0D6EFD;
+        }
+
+        #appSidebar.sidebar-company .sidebar-footer {
+            background-color: #F5F7FA !important;
+        }
+
+        #appSidebar.sidebar-company .sidebar-footer .btn-link:hover,
+        #appSidebar.sidebar-company .sidebar-footer .btn-link:focus-visible {
+            --bs-secondary-color: #0D6EFD;
+            background-color: #EAF2FF;
+        }
+
         /* ESTADO MINIMIZADO (Desktop) */
         body.sidebar-minimized #appSidebar {
             width: 68px;
