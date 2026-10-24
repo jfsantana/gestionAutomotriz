@@ -54,11 +54,24 @@
                     <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" placeholder="Repite la contraseña" required>
                 </div>
 
+                {{-- Cloudflare Turnstile Captcha --}}
+                <div class="mb-3 d-flex justify-content-center">
+                    <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.key') }}" data-theme="light"></div>
+                </div>
+                @error('cf-turnstile-response')
+                    <div class="text-danger small text-center mb-3">
+                        {{ $message }}
+                    </div>
+                @enderror
+
                 <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
                     Crear Contraseña y Entrar al Portal &rarr;
                 </button>
             </form>
         </div>
     </div>
+
+    <!-- Script de Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </body>
 </html>

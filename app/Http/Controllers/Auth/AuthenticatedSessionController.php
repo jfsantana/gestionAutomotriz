@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Rules\TurnstileRule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,9 @@ class AuthenticatedSessionController extends Controller
         $input = $request->validate([
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
+            'cf-turnstile-response' => [new TurnstileRule],
+        ], [
+            'cf-turnstile-response.required' => 'Por favor complete la verificación de seguridad (Captcha).',
         ]);
 
         $loginValue = $input['username'];
