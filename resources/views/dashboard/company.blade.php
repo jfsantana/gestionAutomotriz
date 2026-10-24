@@ -64,13 +64,120 @@
 
 {{-- SECCIÓN 2: PRÓXIMOS MANTENIMIENTOS --}}
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-white py-3 border-bottom">
-        <h5 class="card-title mb-0 fw-semibold text-dark">Próximos Mantenimientos</h5>
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="card-title mb-0 fw-semibold text-dark">Próximos Mantenimientos</h5>
+            <small class="text-muted">Vencimientos en los próximos 7 días o con kilometraje próximo</small>
+        </div>
+        @if(isset($upcomingReminders) && $upcomingReminders->total() > 0)
+            <span class="badge bg-primary rounded-pill">{{ $upcomingReminders->total() }} registros</span>
+        @endif
     </div>
-    <div class="card-body text-center py-5">
-        <div class="text-muted mb-2" style="font-size: 2rem;">&#128197;</div>
-        <h6 class="fw-semibold text-secondary mb-1">Sin mantenimientos programados visibles</h6>
-        <p class="text-muted small mb-0">Esta sección mostrará los recordatorios y mantenimientos próximos a vencer por fecha o kilometraje.</p>
+    <div class="card-body p-0">
+        @if(!isset($upcomingReminders) || $upcomingReminders->isEmpty())
+            <div class="text-center py-5">
+                <div class="text-muted mb-2" style="font-size: 2rem;">&#128197;</div>
+                <h6 class="fw-semibold text-secondary mb-1">Sin mantenimientos próximos a vencer</h6>
+                <p class="text-muted small mb-0">No hay vehículos con vencimiento programado en los siguientes 7 días o con kilometraje crítico.</p>
+            </div>
+        @else
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="ps-4">Vehículo</th>
+                            <th scope="col">Cliente</th>
+                            <th scope="col">Mantenimiento</th>
+                            <th scope="col">Tipo de Vencimiento</th>
+                            <th scope="col">Valor de Vencimiento</th>
+                            <th scope="col" class="pe-4 text-end">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($upcomingReminders as $order)
+                            @php
+                                $rem = $order->reminder;
+                                $hasDate = $order->next_due_date !== null;
+                                $hasMileage = $order->next_due_mileage !== null;
+                            @endphp
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="badge bg-dark text-uppercase px-2 py-1">{{ $order->vehicle?->plate ?? 'S/P' }}</span>
+                                    <div class="fw-semibold text-dark small mt-1">{{ $order->vehicle?->make }} {{ $order->vehicle?->model }}</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ $order->customer?->full_name ?? '—' }}</div>
+                                    @if($order->customer?->phone)
+                                        <small class="text-muted">{{ $order->customer->phone }}</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div class="text-dark fw-semibold small">{{ $order->service_name_snapshot ?? ($order->service?->name ?? 'Servicio Programado') }}</div>
+                                    <small class="text-muted">Último: {{ $order->service_date?->format('d/m/Y') }}</small>
+                                </td>
+                                <td>
+                                    @if($hasDate && $hasMileage)
+                                        <span class="badge bg-light text-dark border">Fecha &bull; Kilometraje</span>
+                                    @elseif($hasDate)
+                                        <span class="badge bg-light text-dark border">Fecha</span>
+                                    @elseif($hasMileage)
+                                        <span class="badge bg-light text-dark border">Kilometraje</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($hasDate)
+                                        <div class="small fw-semibold text-dark">
+                                            &#128197; {{ $order->next_due_date->format('d/m/Y') }}
+                                            @if($rem['days_remaining'] !== null)
+                                                <small class="text-muted">
+                                                    @if($rem['days_remaining'] < 0)
+                                                        (hace {{ abs($rem['days_remaining']) }}d)
+                                                    @elseif($rem['days_remaining'] === 0)
+                                                        (hoy)
+                                                    @else
+                                                        (en {{ $rem['days_remaining'] }}d)
+                                                    @endif
+                                                </small>
+                                            @endif
+                                        </div>
+                                    @endif
+                                    @if($hasMileage)
+                                        <div class="small text-muted">
+                                            &#128739; {{ number_format($order->next_due_mileage) }} km
+                                            @if($rem['mileage_remaining'] !== null)
+                                                <small>
+                                                    @if($rem['mileage_remaining'] <= 0)
+                                                        (rebasado)
+                                                    @else
+                                                        (restan {{ number_format($rem['mileage_remaining']) }} km)
+                                                    @endif
+                                                </small>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <span class="badge bg-{{ $rem['badge_class'] ?? 'secondary' }} px-2 py-1">
+                                        {{ $rem['status_label'] ?? 'Programado' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            @if($upcomingReminders->hasPages())
+                <div class="p-3 border-top d-flex justify-content-between align-items-center bg-light">
+                    <small class="text-muted">
+                        Mostrando {{ $upcomingReminders->firstItem() }} - {{ $upcomingReminders->lastItem() }} de {{ $upcomingReminders->total() }} registros
+                    </small>
+                    {{ $upcomingReminders->links() }}
+                </div>
+            @endif
+        @endif
     </div>
 </div>
 
