@@ -26,9 +26,9 @@
         <div class="col-md-3 col-sm-6">
             <div class="card border-0 shadow-sm border-start border-primary border-4 bg-white h-100">
                 <div class="card-body py-3">
-                    <small class="text-muted text-uppercase fw-semibold d-block">Vehículos en Taller</small>
-                    <div class="h3 mb-0 text-primary fw-bold">&mdash;</div>
-                    <small class="text-muted">En preparación</small>
+                    <small class="text-muted text-uppercase fw-semibold d-block">Vehículos Registrados</small>
+                    <div class="h3 mb-0 text-primary fw-bold">{{ $vehiclesCount }}</div>
+                    <small class="text-muted">Inventario del taller</small>
                 </div>
             </div>
         </div>
@@ -36,8 +36,8 @@
             <div class="card border-0 shadow-sm border-start border-info border-4 bg-white h-100">
                 <div class="card-body py-3">
                     <small class="text-muted text-uppercase fw-semibold d-block">Órdenes Abiertas</small>
-                    <div class="h3 mb-0 text-info text-dark fw-bold">&mdash;</div>
-                    <small class="text-muted">En preparación</small>
+                    <div class="h3 mb-0 text-info text-dark fw-bold">{{ $openOrdersCount }}</div>
+                    <small class="text-muted">En proceso u abiertas</small>
                 </div>
             </div>
         </div>
@@ -45,8 +45,8 @@
             <div class="card border-0 shadow-sm border-start border-warning border-4 bg-white h-100">
                 <div class="card-body py-3">
                     <small class="text-muted text-uppercase fw-semibold d-block">Alertas de Servicio</small>
-                    <div class="h3 mb-0 text-warning text-dark fw-bold">&mdash;</div>
-                    <small class="text-muted">En preparación</small>
+                    <div class="h3 mb-0 text-warning text-dark fw-bold">{{ $serviceAlertsCount }}</div>
+                    <small class="text-muted">Alertas pendientes</small>
                 </div>
             </div>
         </div>
@@ -54,8 +54,8 @@
             <div class="card border-0 shadow-sm border-start border-success border-4 bg-white h-100">
                 <div class="card-body py-3">
                     <small class="text-muted text-uppercase fw-semibold d-block">Clientes Registrados</small>
-                    <div class="h3 mb-0 text-success fw-bold">&mdash;</div>
-                    <small class="text-muted">En preparación</small>
+                    <div class="h3 mb-0 text-success fw-bold">{{ $customersCount }}</div>
+                    <small class="text-muted">Propietarios y flotas</small>
                 </div>
             </div>
         </div>

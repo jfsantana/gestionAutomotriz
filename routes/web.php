@@ -45,9 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Dashboard temporal para Usuario de Empresa
-    Route::get('/company/dashboard', function () {
-        return view('dashboard.company');
-    })->name('company.dashboard');
+    Route::get('/company/dashboard', [DashboardController::class, 'company'])->name('company.dashboard');
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 

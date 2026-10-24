@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Companies\Models\Customer;
+use App\Domain\Maintenance\Models\MaintenanceOrder;
 use App\Services\Health\SystemHealthService;
 use App\Services\MaintenanceReminderService;
 use App\Services\SubscriptionService;
@@ -56,10 +58,32 @@ class DashboardController extends Controller
     }
 
     /**
-     * Muestra la vista temporal del Dashboard para Usuario de Empresa.
+     * Muestra la vista del Dashboard para Usuario de Empresa.
      */
     public function company(Request $request): View
     {
-        return view('dashboard.company');
+        $currentUser = $request->user();
+        $company = $currentUser?->company;
+        $companyId = $currentUser?->company_id;
+
+        $customersCount = $company ? $company->customers()->count() : 0;
+
+        $openOrdersCount = $companyId
+            ? MaintenanceOrder::where('company_id', $companyId)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->count()
+            : 0;
+
+        $vehiclesCount = $company ? $company->vehicles()->count() : 0;
+
+        $reminderSummary = $companyId ? $this->reminderService->getCompanySummary($companyId) : [];
+        $serviceAlertsCount = ($reminderSummary['overdue'] ?? 0) + ($reminderSummary['due_soon'] ?? 0);
+
+        return view('dashboard.company', [
+            'customersCount' => $customersCount,
+            'openOrdersCount' => $openOrdersCount,
+            'vehiclesCount' => $vehiclesCount,
+            'serviceAlertsCount' => $serviceAlertsCount,
+        ]);
     }
 }
