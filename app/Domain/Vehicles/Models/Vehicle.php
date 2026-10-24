@@ -60,6 +60,38 @@ class Vehicle extends Model
     }
 
     /**
+     * Boot del modelo para forzar que el vehículo siempre pertenezca
+     * a la misma empresa que su cliente asociado sin excepción.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Vehicle $vehicle) {
+            if ($vehicle->customer_id) {
+                $customer = $vehicle->customer ?: Customer::find($vehicle->customer_id);
+                if (! $customer) {
+                    throw new \InvalidArgumentException('El vehículo debe tener un cliente asociado válido.');
+                }
+                $vehicle->company_id = $customer->company_id;
+            } else {
+                throw new \InvalidArgumentException('Todo vehículo debe tener obligatoriamente un cliente asociado.');
+            }
+        });
+
+        static::updating(function (Vehicle $vehicle) {
+            $customerId = $vehicle->customer_id ?: $vehicle->getOriginal('customer_id');
+            if ($customerId) {
+                $customer = Customer::find($customerId);
+                if (! $customer) {
+                    throw new \InvalidArgumentException('El vehículo debe tener un cliente asociado válido.');
+                }
+                $vehicle->company_id = $customer->company_id;
+            } else {
+                throw new \InvalidArgumentException('Todo vehículo debe tener obligatoriamente un cliente asociado.');
+            }
+        });
+    }
+
+    /**
      * Empresa del vehículo.
      */
     public function company(): BelongsTo

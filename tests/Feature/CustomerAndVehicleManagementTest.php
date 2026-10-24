@@ -174,4 +174,45 @@ class CustomerAndVehicleManagementTest extends TestCase
 
         $response->assertSessionHasErrors('plate');
     }
+
+    /**
+     * Valida que un vehículo siempre herede y mantenga estrictamente
+     * la misma empresa (company_id) del cliente asociado, tanto en creación como en actualización.
+     */
+    public function test_vehicle_always_matches_customer_company_id_on_store_and_update(): void
+    {
+        // 1. En creación: aunque intenten mandar otro company_id o ninguno, se asigna el del cliente
+        $payload = [
+            'customer_id' => $this->customerA->id,
+            'company_id' => $this->companyB->id, // Intento malicioso de forzar otra empresa
+            'plate' => 'C999888',
+            'make' => 'Mazda',
+            'model' => 'CX-5',
+        ];
+
+        $response = $this->actingAs($this->adminA)->post('/vehicles', $payload);
+        $response->assertRedirect(route('customers.show', $this->customerA));
+
+        $vehicle = Vehicle::where('plate', 'C999888')->first();
+        $this->assertNotNull($vehicle);
+        $this->assertEquals($this->customerA->company_id, $vehicle->company_id);
+        $this->assertEquals($this->companyA->id, $vehicle->company_id);
+
+        // 2. En actualización: se garantiza que conserve la misma empresa que su cliente
+        $updatePayload = [
+            'company_id' => $this->companyB->id, // Intento de alterar la empresa
+            'plate' => 'C999888',
+            'make' => 'Mazda',
+            'model' => 'CX-5 Modificado',
+        ];
+
+        $updateResponse = $this->actingAs($this->adminA)->put("/vehicles/{$vehicle->id}", $updatePayload);
+        $updateResponse->assertRedirect(route('customers.show', $this->customerA));
+
+        $vehicle->refresh();
+        $this->assertEquals('CX-5 Modificado', $vehicle->model);
+        $this->assertEquals($this->customerA->company_id, $vehicle->company_id);
+        $this->assertEquals($this->companyA->id, $vehicle->company_id);
+    }
 }
+

@@ -61,6 +61,7 @@ class VehicleController extends Controller
         $customer = Customer::findOrFail($data['customer_id']);
         $this->authorizeCustomerAccess($currentUser, $customer);
 
+        // Validación estricta: La empresa del vehículo DEBE ser siempre la misma del cliente
         $companyId = $customer->company_id;
         $data['company_id'] = $companyId;
         $plate = strtoupper(trim($data['plate']));
@@ -127,13 +128,17 @@ class VehicleController extends Controller
         $data = $request->validated();
 
         // Evitar manipulación de llaves foráneas en actualización
-        unset($data['company_id'], $data['customer_id']);
+        unset($data['customer_id']);
+
+        // Asegurar sin excepción que la empresa del vehículo coincida con la del cliente asociado
+        $customer = $vehicle->customer ?: Customer::findOrFail($vehicle->customer_id);
+        $data['company_id'] = $customer->company_id;
 
         if ($request->hasFile('photo')) {
             if ($vehicle->photo_path && Storage::disk('public')->exists($vehicle->photo_path)) {
                 Storage::disk('public')->delete($vehicle->photo_path);
             }
-            $data['photo_path'] = $request->file('photo')->store('vehicles/' . $vehicle->company_id, 'public');
+            $data['photo_path'] = $request->file('photo')->store('vehicles/' . $customer->company_id, 'public');
         }
 
         $vehicle->update($data);
