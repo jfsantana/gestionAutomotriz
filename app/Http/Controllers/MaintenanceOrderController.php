@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
 use App\Domain\Maintenance\Models\MaintenanceOrderPhoto;
@@ -11,6 +10,7 @@ use App\Domain\Vehicles\Models\Vehicle;
 use App\Http\Requests\MaintenanceOrders\StoreMaintenanceOrderRequest;
 use App\Http\Requests\MaintenanceOrders\UpdateMaintenanceOrderRequest;
 use App\Models\User;
+use App\Services\MaintenanceOrderNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +18,10 @@ use Illuminate\View\View;
 
 class MaintenanceOrderController extends Controller
 {
+    public function __construct(
+        protected MaintenanceOrderNotificationService $notificationService,
+    ) {}
+
     public function index(Request $request): View
     {
         $currentUser = $request->user();
@@ -42,7 +46,7 @@ class MaintenanceOrderController extends Controller
         $preselectedVehicleId = $request->input('vehicle_id');
         $preselectedVehicle = $preselectedVehicleId ? Vehicle::find($preselectedVehicleId) : null;
 
-        if ($preselectedVehicle && $currentUser->role !== 'super_admin' && (int)$preselectedVehicle->company_id !== (int)$companyId) {
+        if ($preselectedVehicle && $currentUser->role !== 'super_admin' && (int) $preselectedVehicle->company_id !== (int) $companyId) {
             abort(403);
         }
 
@@ -90,7 +94,7 @@ class MaintenanceOrderController extends Controller
         $customer = Customer::findOrFail($data['customer_id']);
 
         // Aislamiento y coherencia cliente - vehículo
-        if ((int)$vehicle->customer_id !== (int)$customer->id) {
+        if ((int) $vehicle->customer_id !== (int) $customer->id) {
             return back()->withErrors(['vehicle_id' => 'El vehículo seleccionado no pertenece al cliente especificado.'])->withInput();
         }
 
@@ -98,7 +102,7 @@ class MaintenanceOrderController extends Controller
             ? ($data['company_id'] ?? $vehicle->company_id)
             : $currentUser->company_id;
 
-        if ((int)$vehicle->company_id !== (int)$companyId) {
+        if ((int) $vehicle->company_id !== (int) $companyId) {
             abort(403, 'El vehículo pertenece a otra empresa.');
         }
 
@@ -141,7 +145,7 @@ class MaintenanceOrderController extends Controller
             // Guardar fotos de evidencia si se adjuntaron
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $photo) {
-                    $path = $photo->store('maintenance_photos/' . $order->company_id, 'public');
+                    $path = $photo->store('maintenance_photos/'.$order->company_id, 'public');
                     MaintenanceOrderPhoto::create([
                         'maintenance_order_id' => $order->id,
                         'file_path' => $path,
@@ -153,9 +157,13 @@ class MaintenanceOrderController extends Controller
             }
         });
 
-        return redirect()
+        $warning = $this->notificationService->send($order);
+
+        $response = redirect()
             ->route('maintenance-orders.show', $order)
             ->with('success', "Orden de mantenimiento {$order->order_number} registrada correctamente.");
+
+        return $warning ? $response->with('warning', $warning) : $response;
     }
 
     public function show(Request $request, MaintenanceOrder $maintenance_order): View
@@ -192,6 +200,7 @@ class MaintenanceOrderController extends Controller
         $this->authorizeOrderAccess($request->user(), $maintenance_order);
 
         $data = $request->validated();
+        $previousStatus = $maintenance_order->status;
 
         if ($data['status'] === 'completed' && ! $maintenance_order->completed_at) {
             $data['completed_at'] = now();
@@ -210,7 +219,7 @@ class MaintenanceOrderController extends Controller
             // Fotos adicionales
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $photo) {
-                    $path = $photo->store('maintenance_photos/' . $maintenance_order->company_id, 'public');
+                    $path = $photo->store('maintenance_photos/'.$maintenance_order->company_id, 'public');
                     MaintenanceOrderPhoto::create([
                         'maintenance_order_id' => $maintenance_order->id,
                         'file_path' => $path,
@@ -222,14 +231,20 @@ class MaintenanceOrderController extends Controller
             }
         });
 
-        return redirect()
+        $warning = $maintenance_order->wasChanged('status')
+            ? $this->notificationService->send($maintenance_order, $previousStatus)
+            : null;
+
+        $response = redirect()
             ->route('maintenance-orders.show', $maintenance_order)
             ->with('success', "Orden {$maintenance_order->order_number} actualizada correctamente.");
+
+        return $warning ? $response->with('warning', $warning) : $response;
     }
 
     protected function authorizeOrderAccess($currentUser, MaintenanceOrder $order): void
     {
-        if (in_array($currentUser->role, ['company_admin', 'mechanic'], true) && (int)$order->company_id !== (int)$currentUser->company_id) {
+        if (in_array($currentUser->role, ['company_admin', 'mechanic'], true) && (int) $order->company_id !== (int) $currentUser->company_id) {
             abort(403, 'No tienes autorización para acceder a órdenes de otra empresa.');
         }
     }

@@ -71,6 +71,9 @@
                         <option value="completed" @selected(old('status', $order->status) === 'completed')>Completada</option>
                         <option value="cancelled" @selected(old('status', $order->status) === 'cancelled')>Cancelada</option>
                     </select>
+                    @if ($order->origin !== 'customer')
+                        <div class="form-text">Cada cambio de estado enviará un correo al propietario con copia a los administradores activos de la empresa.</div>
+                    @endif
                     @error('status')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror

@@ -105,11 +105,12 @@
     <div class="col-md-3">
         <label for="status" class="form-label fw-semibold">Estado de la Orden <span class="text-danger">*</span></label>
         <select class="form-select @error('status') is-invalid @enderror" id="status" name="status" required>
-            <option value="open" @selected(old('status', $order->status) === 'open')>Abierta (Open)</option>
+            <option value="open" @selected(old('status', $order->status) === 'open')>Abierta</option>
             <option value="in_progress" @selected(old('status', $order->status) === 'in_progress')>En Progreso</option>
             <option value="completed" @selected(old('status', $order->status) === 'completed')>Completada</option>
             <option value="cancelled" @selected(old('status', $order->status) === 'cancelled')>Cancelada</option>
         </select>
+        <div class="form-text">Puedes registrar la orden con cualquier estado inicial. Se enviará un correo al propietario con copia a los administradores activos de la empresa.</div>
         @error('status')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror

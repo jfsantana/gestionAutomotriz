@@ -161,3 +161,13 @@ El sistema cuenta con un **Portal del Cliente** completamente aislado del menú 
    - **Mi Cuenta:** Edición de datos de contacto, cambio de contraseña y baja voluntaria de la cuenta.
 5. **Aislamiento Estricto:** Un usuario con rol `customer` no puede acceder a las rutas del taller (`/dashboard`, `/staff`, `/companies`, `/customers`, etc.), recibiendo respuesta `403 Prohibido`.
 
+### Avisos de mantenimiento por correo
+
+- Las órdenes del taller/concesionario pueden crearse como **Abierta, En progreso, Completada o Cancelada**. Siempre se intenta notificar al propietario después de guardar la orden y sus evidencias.
+- Cada cambio real de estado envía otro correo; editar notas u otros datos sin cambiar el estado no genera avisos duplicados.
+- El destinatario es el correo de la ficha del cliente asociado a la orden. Se envía **CC a los administradores activos de esa misma empresa**, sin duplicar direcciones ni copiar a mecánicos o administradores de otras empresas.
+- El correo incluye vehículo, placa, servicio, orden, fecha, estado actual y, cuando corresponda, estado anterior. Incluye un botón al historial privado del cliente, orientación para activar su acceso y versiones HTML y texto.
+- Los registros personales del portal quedan excluidos de estos avisos y copias.
+- Si falta un email válido del cliente, se guarda el mantenimiento y se muestra una advertencia. Si no hay administradores activos con email válido, se envía al cliente y se advierte que no hubo copia.
+- El envío es inmediato, mediante el mailer configurado, y se realiza fuera de la transacción de guardado. Los errores de transporte se reportan al registro de errores y se muestran como advertencia sin perder el mantenimiento.
+- Para entrega real, configura un mailer de envío (por ejemplo, `MAIL_MAILER=smtp`) y sus credenciales. `log` y `array` no entregan correos a buzones. `APP_URL` debe apuntar a la dirección pública de la aplicación para que el enlace funcione.
