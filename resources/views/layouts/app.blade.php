@@ -22,6 +22,10 @@
             background-color: #f8f9fa;
         }
 
+        #appNavbar {
+            z-index: 1030;
+        }
+
         /* Layout con Sidebar Flexible / Minimizable */
         #appLayout {
             display: flex;

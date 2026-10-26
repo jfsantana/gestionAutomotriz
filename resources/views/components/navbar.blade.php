@@ -2,7 +2,7 @@
     $currentCompany = auth()->check() ? auth()->user()->company : null;
 @endphp
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top border-bottom border-secondary">
+<nav id="appNavbar" class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top border-bottom border-secondary">
     <div class="container-fluid">
         <div class="d-flex align-items-center">
             {{-- Botón para colapsar / minimizar el menú lateral (Desktop y Móvil) --}}
