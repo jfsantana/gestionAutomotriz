@@ -38,7 +38,7 @@
             width: 250px;
             min-width: 250px;
             flex-shrink: 0;
-            background-color: #ffffff;
+            background-color: #e9ecef;
             transition: width 0.25s ease-in-out, min-width 0.25s ease-in-out, transform 0.25s ease-in-out;
             z-index: 1020;
         }
@@ -153,7 +153,6 @@
         #appSidebar.sidebar-company {
             --bs-border-color: #E5E7EB;
             --bs-secondary-color: #6B7280;
-            background-color: #F5F7FA;
             color: #1F2937;
             border-right-color: #E5E7EB !important;
         }
@@ -176,10 +175,6 @@
             background-color: #DCEBFF;
             color: #0D6EFD;
             border-left: 4px solid #0D6EFD;
-        }
-
-        #appSidebar.sidebar-company .sidebar-footer {
-            background-color: #F5F7FA !important;
         }
 
         #appSidebar.sidebar-company .sidebar-footer .btn-link:hover,

@@ -1,4 +1,4 @@
-<aside class="sidebar {{ request()->routeIs('company.dashboard') && auth()->user()?->role === 'company_admin' ? 'sidebar-company' : 'bg-white' }} border-end d-flex flex-column justify-content-between" id="appSidebar">
+<aside class="sidebar {{ request()->routeIs('company.dashboard') && auth()->user()?->role === 'company_admin' ? 'sidebar-company' : '' }} border-end d-flex flex-column justify-content-between" id="appSidebar">
     <div class="pt-3 px-2 flex-grow-1 overflow-auto">
 
         {{-- SECCIÓN 1: PRINCIPAL --}}
@@ -156,7 +156,7 @@
 
     {{-- BORDE INFERIOR: ENLACE FIJO A LAS POLÍTICAS Y CONDICIONES ACEPTADAS --}}
     @if(isset($currentPlatformPolicy) && $currentPlatformPolicy)
-        <div class="sidebar-footer border-top p-2 bg-light text-center">
+        <div class="sidebar-footer border-top p-2 text-center">
             <button 
                 type="button" 
                 class="btn btn-link p-0 text-decoration-none text-muted small d-flex align-items-center justify-content-center w-100" 
