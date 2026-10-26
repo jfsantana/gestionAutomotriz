@@ -1,224 +1,366 @@
-﻿# gestionAutomotriz — SaaS de Gestión Automotriz (Fase 0)
+# AutoBitacora — Gestión de Mantenimiento Automotriz
 
-Sistema web multiempresa para talleres mecánicos y concesionarios desarrollado con **Laravel**, **PHP 8.3+**, **MySQL/MariaDB** y **Bootstrap 5 (CDN)**.
+Aplicación web multiempresa para gestionar clientes, vehículos, servicios, órdenes de mantenimiento y próximos vencimientos de talleres y concesionarios. Incluye administración de suscripciones SaaS y un portal independiente para propietarios de vehículos.
 
-Esta fase corresponde a la **FASE 0: Preparación de la base técnica y arquitectura**. No contiene aún lógica de negocio funcional ni módulos avanzados de facturación o vehículos, sino los cimientos limpios para construirlos de forma mantenible y escalable.
+**Estado:** aplicación funcional en pruebas. Este documento describe las funcionalidades implementadas; no constituye una certificación de producción.
 
----
+> **¿Vas a utilizar el sistema?** Consulta el [Manual de usuario](Documentacion/Manual-de-Usuario.md). Este README está dirigido principalmente a quienes instalan, mantienen o colaboran en el repositorio.
 
-## 1. Requisitos del Entorno Local
+## Contenido
 
-- **Servidor:** WAMP Server 3.x (o superior) en Windows.
-- **PHP:** Versión `8.3.14` (o PHP 8.3+).
-- **Extensiones PHP necesarias:** `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `curl`.
-- **Motor de Base de Datos:** MySQL o MariaDB (incluido en WAMP).
-- **Composer:** 2.x.
+- [Funcionalidades](#funcionalidades)
+- [Perfiles y alcance](#perfiles-y-alcance)
+- [Tecnologías y requisitos](#tecnologías-y-requisitos)
+- [Instalación local](#instalación-local)
+- [Correo y tareas programadas](#correo-y-tareas-programadas)
+- [Integridad y operaciones sensibles](#integridad-y-operaciones-sensibles)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Pruebas y mantenimiento](#pruebas-y-mantenimiento)
+- [Colaboración en GitHub](#colaboración-en-github)
 
----
+## Funcionalidades
 
-## 2. Configuración en WAMP Server
+| Área | Funciones disponibles |
+|---|---|
+| Empresas y usuarios | Empresas/talleres, administradores de empresa, personal operativo y activación/desactivación de accesos. |
+| Clientes | Particulares y propietarios de flota, datos de contacto, documentos, ficha e invitación al portal. |
+| Vehículos | Inventario, relación con el propietario, fotografía, kilometraje e historial de mantenimiento. |
+| Servicios | Catálogo preventivo/correctivo, intervalos sugeridos y estado activo/inactivo. |
+| Mantenimientos | Órdenes, responsable, estados, costos, observaciones, evidencias fotográficas y próximos controles. |
+| Recordatorios | Evaluación por fecha y kilometraje, filtros, resumen operativo y avisos por correo. |
+| Suscripciones | Planes, asignación a empresas, vigencia, suspensión, reactivación, renovación manual y auditoría. |
+| Portal del cliente | Activación por invitación, consulta de vehículos e historial, servicios propios y gestión de cuenta. |
+| Identidad y navegación | Logo y paleta del taller, iconos compartidos entre menú y encabezados, barra superior persistente. |
+| Uso móvil | Tarjetas compactas en los listados administrativos adaptados y en los historiales de las fichas del taller; tablas en escritorio. |
 
-### 2.1. Configuración de VirtualHost (Importante)
-El DocumentRoot y directorio del VirtualHost en Apache **deben apuntar obligatoriamente a la carpeta `public`** del proyecto:
+### Alcance actual
 
-- **Ruta destino:** `C:\wamp64\www\gestionAutomotriz\public`
+- Los precios y costos registrados **no representan un cobro electrónico**. No se documenta una pasarela de pagos, facturación fiscal ni conciliación bancaria.
+- Los límites de mecánicos y órdenes de los planes se presentan como **límites sugeridos**; no hay un bloqueo automático por cuota implementado en los flujos actuales.
+- La renovación desde la interfaz es manual. No debe interpretarse un atributo de renovación como una integración de cobro recurrente.
+- Los mantenimientos propios del cliente se distinguen de los realizados en el taller y se muestran como **no verificados por el taller**.
+- Un registro aceptado por el transporte de correo no acredita recepción en la bandeja de entrada.
 
-Ejemplo de configuración en `C:\wamp64\bin\apache\apacheX.Y.Z\conf\extra\httpd-vhosts.conf` o a través del menú de WAMP (*Add a VirtualHost*):
+## Perfiles y alcance
 
-```apache
-<VirtualHost *:80>
-    ServerName gestionautomotriz.local
-    DocumentRoot "C:/wamp64/www/gestionAutomotriz/public"
-    <Directory "C:/wamp64/www/gestionAutomotriz/public/">
-        Options Indexes FollowSymLinks MultiViews
-        AllowOverride All
-        Require local
-    </Directory>
-</VirtualHost>
+| Perfil | Identificador | Alcance principal |
+|---|---|---|
+| Superadministrador | `super_admin` | Administración global de empresas, usuarios, planes y suscripciones; acceso operativo multiempresa. |
+| Administrador de empresa | `company_admin` | Clientes, vehículos, catálogo, personal, órdenes, recordatorios e identidad de su propia empresa. |
+| Mecánico | `mechanic` | Órdenes y consulta de recordatorios de su empresa; sin administración de clientes, vehículos, catálogo o personal. |
+| Cliente | `customer` | Portal privado con sus vehículos, historial, registros personales y cuenta. |
+
+El acceso depende también del estado del usuario, de la empresa/suscripción y de la aceptación de políticas.
+
+La relación operativa es **Empresa → Cliente → Vehículos → Mantenimientos**. Las consultas operativas comprueban la coherencia de estas asociaciones. Un cliente no accede al panel del taller y el personal sin una empresa válida no obtiene acceso global.
+
+**Excepción importante:** el envío manual de recordatorios por correo corresponde únicamente al administrador activo de la empresa propietaria. No está habilitado para superadministradores, mecánicos ni clientes.
+
+## Tecnologías y requisitos
+
+| Componente | Referencia del proyecto |
+|---|---|
+| Backend | Laravel 13, PHP y Eloquent. |
+| PHP | Entorno de trabajo actual: PHP 8.5. La restricción raíz es `^8.3`; la compatibilidad efectiva también depende de las dependencias bloqueadas. |
+| Dependencias PHP | Composer 2; versiones reproducibles en [composer.lock](composer.lock). |
+| Base de datos | MySQL/MariaDB para el entorno de trabajo; pruebas configuradas con SQLite en memoria. |
+| Interfaz | Blade y Bootstrap 5.3.3 servido por CDN en los layouts operativos. |
+| Herramientas frontend | Vite 8 y Tailwind CSS 4 declarados en [package.json](package.json). No sustituyen el estilo Bootstrap de las vistas operativas. |
+| Pruebas y formato | PHPUnit 12 y Laravel Pint. |
+
+Necesitas:
+
+- PHP y Composer disponibles en la terminal.
+- Un motor de base de datos y una base creada para la aplicación.
+- Extensiones PHP compatibles con las dependencias; `pdo_mysql` para MySQL y `pdo_sqlite` para las pruebas.
+- Permisos de escritura en [storage](storage/) y [bootstrap/cache](bootstrap/cache/).
+- Acceso a los recursos CDN y, según configuración, a SMTP y Cloudflare Turnstile.
+- Node.js/npm compatibles con Vite 8 si vas a compilar los recursos frontend.
+
+Verificación inicial:
+
+```powershell
+php -v
+composer -V
 ```
 
-> **Nota:** Si utilizas `gestionautomotriz.local`, asegúrate de agregar la entrada al archivo `C:\Windows\System32\drivers\etc\hosts`:
-> ```text
-> 127.0.0.1 gestionautomotriz.local
-> ```
+## Instalación local
 
----
+Los ejemplos de terminal utilizan PowerShell. Ajusta las rutas a tu equipo.
 
-## 3. Instalación y Configuración del Proyecto
+### 1. Obtener el código e instalar dependencias
 
-### Paso 1: Configurar variables de entorno (`.env`)
-Verifica que el archivo `.env` exista en la raíz del proyecto. Si no existe, créalo copiando el archivo de ejemplo:
+```powershell
+git clone https://github.com/jfsantana/gestionAutomotriz.git
+Set-Location gestionAutomotriz
+composer install
+composer check-platform-reqs
+```
+
+Usa `composer install`, no `composer update`, para respetar las versiones del repositorio.
+
+### 2. Configurar el entorno
+
+Solo si aún no tienes configuración local:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Configura tus credenciales de MySQL en `.env`:
+El ejemplo del repositorio utiliza SQLite. Para el entorno MySQL/MariaDB, configura tu archivo local con valores propios:
 
-```env
-APP_NAME=gestionAutomotriz
+```dotenv
+APP_NAME=AutoBitacora
 APP_ENV=local
-APP_KEY=
 APP_DEBUG=true
-APP_TIMEZONE=UTC
-APP_URL=http://gestionautomotriz.local
+APP_URL=http://localhost:8000
+APP_LOCALE=es
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=gestion_automotriz
-DB_USERNAME=root
-DB_PASSWORD=
+DB_USERNAME=usuario_de_aplicacion
+DB_PASSWORD=REEMPLAZAR_LOCALMENTE
+
+MAIL_MAILER=log
 ```
 
-### Paso 2: Generar la clave de aplicación
-Ejecuta con el PHP de WAMP:
-```powershell
-& "C:\wamp64\bin\php\php8.3.14\php.exe" artisan key:generate
-```
+- Crea previamente la base indicada y concede al usuario los permisos necesarios.
+- `APP_URL` debe coincidir con la dirección real utilizada por los usuarios; es esencial para los enlaces de invitación y correo.
+- Configura tus propias claves `TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET_KEY`, con el dominio autorizado. No reutilices claves incluidas en archivos de ejemplo para una instalación compartida.
+- No publiques el archivo local de entorno ni sus valores en commits, issues o capturas.
+- La zona general de la aplicación está fijada en UTC en [config/app.php](config/app.php). Los recordatorios por email programan expresamente la zona `America/Caracas`; añadir una variable `APP_TIMEZONE` por sí sola no cambia esa configuración.
 
----
+### 3. Inicializar la instalación
 
-## 4. Estructura Arquitectónica Implementada
-
-```text
-app/
-├── Domain/                           # Dominios y subdominios del negocio
-│   ├── Companies/                    # Dominio de Empresas (Tenants)
-│   │   ├── Contracts/
-│   │   │   └── CompanyScopedInterface.php   # Contrato para entidades aisladas por empresa
-│   │   ├── Traits/
-│   │   │   └── BelongsToCompany.php         # Trait para asignar y consultar company_id
-│   │   └── Models/                   # Modelos futuros de Company/Tenant
-│   ├── Users/                        # Dominio de Usuarios
-│   ├── Vehicles/                     # Dominio de Vehículos (Fase 2)
-│   ├── Maintenance/                  # Dominio de Órdenes y Servicios (Fase 2)
-│   ├── Reminders/                    # Dominio de Recordatorios (Fase 3)
-│   └── Billing/                      # Dominio de Facturación y Planes (Fase 4)
-├── Http/
-│   └── Controllers/
-│       ├── DashboardController.php   # Controlador web del Dashboard técnico
-│       └── HealthController.php      # Endpoint JSON /health para monitoreo y API móvil
-└── Services/
-    └── Health/
-        └── SystemHealthService.php   # Diagnóstico desacoplado del estado del sistema
-
-resources/
-└── views/
-    ├── layouts/
-    │   └── app.blade.php             # Layout base Blade con Bootstrap 5 (CDN)
-    ├── components/
-    │   ├── navbar.blade.php          # Barra de navegación superior
-    │   ├── sidebar.blade.php         # Menú lateral estructurado por dominios
-    │   └── flash-messages.blade.php  # Alertas flash de sesión
-    └── dashboard/
-        └── index.blade.php           # Vista institucional y de diagnóstico técnico
-```
-
----
-
-## 5. Verificación y Pruebas Locales
-
-### Recordatorios de mantenimiento por email
-
-- Envío automático a las **08:00 de America/Caracas**, exactamente **dos días calendario antes** de `next_due_date`.
-- Solo se notifican órdenes del taller completadas, con cliente y vehículo disponibles y una empresa operativa. Los registros personales del cliente y vehículos dados de baja no se notifican.
-- En **Recordatorios → Acciones**, únicamente un administrador activo de la empresa propietaria puede usar **Enviar recordatorio**. No está permitido para mecánicos, clientes ni superadministradores.
-- La lista, los filtros, los contadores y los recordatorios del dashboard/vehículo validan que la orden, el cliente y el vehículo pertenezcan a la misma empresa y que el vehículo corresponda al cliente. La misma protección se aplica a las órdenes, sus detalles y los historiales. Los registros inconsistentes se excluyen hasta reconciliarse: no se debe resolver el problema únicamente ocultándolos. Los clientes no pueden acceder a los módulos administrativos y el personal sin empresa no obtiene una vista global. Solo el superadministrador conserva la vista global de registros coherentes.
-- El envío manual admite vencimientos futuros, vencidos o solo por kilometraje. No se puede calcular un aviso automático de dos días para un vencimiento sin fecha.
-- Ambos canales comparten el límite de **un correo por orden y día en Caracas**, aun si cambia la fecha de vencimiento. Se muestra el último envío y se bloquean nuevos envíos ese día.
-- Se envía al email del cliente, sin copias. El mensaje contiene los detalles del mantenimiento, contacto del taller y acceso al portal; no confirma una cita.
-
-**Puesta en marcha:**
-
-1. Ejecuta `php artisan migrate` para agregar el registro del último envío y el índice de vencimientos.
-2. Configura `APP_URL` con la URL pública y las variables `MAIL_*` con un transporte real (por ejemplo SMTP). El transporte `log` solo escribe en el registro; no entrega correos.
-3. En el Programador de tareas de Windows, ejecuta `php artisan schedule:run` **cada minuto**, usando la ruta absoluta de PHP y esta carpeta como directorio de inicio. La aplicación programa internamente las 08:00 de Caracas, independientemente de la zona del servidor.
-4. Comprueba la programación con `php artisan schedule:list`. No se requiere un trabajador de colas: el envío es síncrono, como las notificaciones existentes.
-
-Comando de envío (envía correos reales si el transporte está configurado):
+En una base nueva:
 
 ```powershell
-php artisan maintenance:send-reminders
-php artisan maintenance:send-reminders --company=1
+php artisan key:generate
+php artisan migrate
+php artisan storage:link
 ```
 
-El comando se puede repetir el mismo día: omite órdenes ya notificadas. Los fallos se muestran por orden y devuelven código de salida no exitoso sin impedir el procesamiento de las demás. La ejecución programada guarda su salida en `storage/logs/maintenance-reminders.log`; los errores de transporte también se reportan al registro de Laravel. Si el servidor está apagado a las 08:00, ejecuta el comando ese mismo día; no envía avisos atrasados de días anteriores.
+**No regeneres la clave de una instalación existente.** Conserva una copia protegida de la clave y de la configuración.
 
-La marca `reminder_sent_at` se guarda tras aceptar el mensaje el transporte, bajo bloqueo de base de datos para serializar envíos simultáneos. Esto no acredita recepción en la bandeja de entrada. Ante un fallo de conexión ambiguo o una interrupción entre la aceptación SMTP y el guardado, verifica los registros del proveedor antes de reintentar para evitar posibles duplicados. La reversión de la migración elimina las marcas de envío.
+Para preparar una instalación **local de pruebas**:
 
-### Regla de pertenencia y traslado de clientes
+```powershell
+php artisan db:seed
+```
 
-**Empresa → Cliente → N vehículos → Historial de mantenimiento.** La empresa del cliente es la referencia. Crear un vehículo o una orden no permite elegir una empresa distinta ni asociar vehículos de otro cliente. Los servicios y mecánicos deben pertenecer a esa misma empresa.
+El [DatabaseSeeder](database/seeders/DatabaseSeeder.php) crea la cuenta inicial de superadministración y la política de plataforma.
 
-El administrador de un taller solo consulta y gestiona sus clientes y vehículos. No puede trasladarlos mediante parámetros manipulados. Tampoco es posible apropiarse de una cuenta de otra empresa al invitar a un cliente con el mismo correo.
+> **Precaución:** el [SuperAdminSeeder](database/seeders/SuperAdminSeeder.php) contiene credenciales predefinidas y utiliza `updateOrCreate`; volver a ejecutarlo puede restablecer los datos de esa cuenta. No lo ejecutes sin revisión en un entorno compartido o de producción. Las credenciales deben entregarse por un canal privado y sustituirse mediante un procedimiento administrativo seguro antes de publicar el servicio. Este README no las reproduce.
 
-El **superadministrador** puede cambiar la empresa al editar un cliente. La actualización traslada, en una sola transacción, el cliente, todos sus vehículos, órdenes (incluidos registros con baja lógica), cuenta de cliente e invitaciones del portal. Se conservan fechas, importes, observaciones, textos históricos de servicios y fotografías. Se desvinculan las referencias a catálogo, mecánicos y usuarios registradores de otras empresas; se preservan los registradores superadministradores. No se envían correos por trasladar o reconciliar.
+### 4. Recursos frontend
 
-Si una placa ya existe en la empresa destino o hay órdenes cuyo cliente no corresponde al vehículo, se rechaza la operación completa sin aplicar un traslado parcial.
+Si vas a trabajar con los recursos de Vite:
 
-Para datos históricos cuya empresa no coincide con la del cliente:
+```powershell
+npm install
+npm run build
+```
+
+Para desarrollo continuo, utiliza `npm run dev` en otra terminal. Las vistas administrativas actuales cargan Bootstrap desde CDN: modificar sus clases Blade no exige recompilar Bootstrap.
+
+### 5. Iniciar el servidor
+
+Alternativa de desarrollo:
+
+```powershell
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+Abre la dirección que muestra Artisan. El acceso de usuarios comienza en `/login`.
+
+En WAMP/Apache:
+
+1. Configura el VirtualHost con raíz pública en `C:\wamp64\www\gestionAutomotriz\public`.
+2. Habilita la reescritura de URL y permite que se aplique la configuración de [public/.htaccess](public/.htaccess).
+3. Configura el nombre local en el archivo `hosts`, si lo necesitas.
+4. Ajusta `APP_URL` y reinicia los servicios cuando corresponda.
+
+**No expongas la raíz del repositorio como DocumentRoot.** Solo [public](public/) debe ser accesible como raíz web.
+
+### 6. Primera configuración funcional
+
+Con la cuenta de superadministración:
+
+1. Acepta las políticas vigentes.
+2. Registra la empresa/taller.
+3. Define el plan y asigna su suscripción.
+4. Crea un administrador asociado a esa empresa.
+5. Con el administrador del taller, registra personal y servicios.
+6. Registra un cliente, su vehículo y una primera orden de prueba.
+
+El procedimiento de usuario está desarrollado en el [manual](Documentacion/Manual-de-Usuario.md).
+
+## Correo y tareas programadas
+
+### Configuración de entrega
+
+Configura un transporte real, por ejemplo SMTP, mediante `MAIL_MAILER`, `MAIL_SCHEME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` y `MAIL_FROM_NAME`, según tu proveedor y [config/mail.php](config/mail.php).
+
+Los transportes `log` y `array` **no entregan mensajes a buzones**. No publiques credenciales SMTP. Después de modificar configuración cacheada, utiliza el procedimiento de limpieza/reconstrucción de caché de tu entorno.
+
+Los envíos actuales de invitaciones, avisos y recordatorios son síncronos; no necesitan un trabajador de colas para esas operaciones.
+
+### Tipos de correo
+
+| Evento | Comportamiento |
+|---|---|
+| Invitación al portal | Enlace con token de activación, de un solo uso y vigencia de 48 horas. No depende de un proveedor SMTP específico. |
+| Creación de orden del taller | Intenta avisar al propietario y copiar a los administradores activos de esa empresa con correo válido. |
+| Cambio real de estado | Envía un nuevo aviso. Editar otros datos sin cambiar el estado no genera ese aviso. |
+| Recordatorio automático | Dos días calendario antes de la fecha de vencimiento, a las 08:00 de Caracas. |
+| Recordatorio manual | Desde la lista de recordatorios, por un administrador activo autorizado; admite vencidos y controles solo por kilometraje. |
+
+Los avisos de órdenes no incluyen los registros personales del portal. Si el correo de una orden no puede enviarse, se conserva el mantenimiento y se informa la advertencia. Los recordatorios no llevan copias ni constituyen una confirmación de cita.
+
+### Programador
+
+La tarea definida en [routes/console.php](routes/console.php) ejecuta `maintenance:send-reminders` a las **08:00 en `America/Caracas`**, evitando solapamientos.
+
+En el Programador de tareas de Windows:
+
+- Programa una ejecución **cada minuto**.
+- Programa/script: ruta absoluta al ejecutable de PHP.
+- Argumentos: `artisan schedule:run`.
+- Directorio de inicio: raíz de esta instalación.
+- Usa una cuenta con permisos para ejecutar PHP y escribir en los registros.
+
+Comprobación de la programación:
+
+```powershell
+php artisan schedule:list
+```
+
+Para desarrollo, `php artisan schedule:work` mantiene el programador en primer plano.
+
+### Comandos operativos
+
+| Comando | Efecto |
+|---|---|
+| `php artisan maintenance:process-reminders` | Evalúa y muestra los recordatorios; no envía correos. |
+| `php artisan maintenance:send-reminders` | Envía los avisos elegibles para vencimientos dentro de dos días. |
+| `php artisan maintenance:send-reminders --company=1` | Limita el envío a la empresa indicada. |
+| `php artisan subscriptions:process-expired` | Actualiza a vencidas las suscripciones activas o de prueba cuya vigencia terminó. Modifica datos. |
+
+`subscriptions:process-expired` **no está programado automáticamente** en la configuración actual. Si se requiere esa actualización periódica, el responsable técnico debe programarla expresamente. El control de acceso también evalúa la vigencia al utilizar los módulos.
+
+Los envíos manuales y automáticos comparten el máximo de **un correo por mantenimiento y día de Caracas**, incluso si se modifica el vencimiento. El transporte debe aceptar el mensaje antes de guardar `reminder_sent_at`. En un fallo ambiguo de SMTP o una interrupción posterior a la aceptación, consulta al proveedor antes de reintentar: la marca local no garantiza una entrega exactamente una vez.
+
+Los envíos automáticos exigen una orden completada del taller, empresa operativa, asociaciones coherentes, cliente/vehículo disponibles y correo válido. Los controles sin fecha no permiten calcular el aviso de dos días.
+
+Si el servidor no estuvo disponible a la hora programada, el comando puede ejecutarse manualmente ese mismo día; no recupera avisos atrasados de otros días.
+
+## Integridad y operaciones sensibles
+
+### Traslado de clientes
+
+Solo el superadministrador puede cambiar la empresa de un cliente desde su edición. El traslado incluye sus vehículos, órdenes —también con baja lógica—, cuenta e invitaciones del portal, dentro de una transacción.
+
+Se conservan fechas, costos, observaciones, fotografías y textos históricos. Se desvinculan referencias a servicios, mecánicos y registradores de otras empresas, conservando los registradores superadministradores. El traslado no envía correos.
+
+Si hay conflictos de placas en destino o asociaciones ambiguas entre órdenes y propietarios, se rechaza el traslado completo.
+
+Para reconciliar datos históricos con la empresa actual de un cliente, comienza por la simulación:
 
 ```powershell
 php artisan ownership:reconcile-customer 2
+```
+
+Solo después de revisar el alcance y contar con respaldo:
+
+```powershell
 php artisan ownership:reconcile-customer 2 --apply
 ```
 
-Sin `--apply` solo muestra el alcance. Con `--apply` alinea las asociaciones seguras con la empresa actual del cliente y deja un registro de auditoría en el log de Laravel. No cambia el propietario de un vehículo ni adivina a qué cliente corresponde una orden ambigua; esos casos requieren revisión.
+Sustituye `2` por el ID real. Sin `--apply` no modifica datos. La aplicación no adivina propietarios ni corrige asociaciones ambiguas; esas situaciones requieren revisión.
 
-### 5.1. Ejecutar las pruebas automatizadas
-Para validar que el endpoint técnico y las vistas responden correctamente:
+### Baja de vehículos y cuentas
+
+- **Dar de Baja (Liberar Placa), en la ficha administrativa:** elimina definitivamente el vehículo y sus órdenes; elimina también los registros de evidencias asociados. No es una simple desactivación.
+- **Eliminar Vehículo (Soft Delete):** utiliza baja lógica. No equivale a liberar la placa mediante la acción anterior.
+- **Baja desde el portal del cliente:** marca el vehículo como dado de baja y aplica baja lógica al vehículo y a sus órdenes. No transfiere su historial al comprador.
+- **Baja de cuenta del cliente:** desactiva su acceso y cierra la sesión; no debe describirse como borrado completo de todos sus datos.
+
+No hay un procedimiento de recuperación desde la interfaz documentado para estas bajas. La eliminación de registros tampoco debe interpretarse como garantía de borrado físico de todos los archivos o copias de respaldo.
+
+## Estructura del proyecto
+
+| Ubicación | Responsabilidad |
+|---|---|
+| [app/Domain](app/Domain/) | Modelos y organización por compañías, usuarios, vehículos, mantenimiento, recordatorios y suscripciones. |
+| [app/Http](app/Http/) | Controladores, validación y middleware de acceso. |
+| [app/Services](app/Services/) | Pertenencia de clientes, suscripciones, notificaciones, recordatorios y diagnóstico. |
+| [app/Console/Commands](app/Console/Commands/) | Procesos operativos ejecutables con Artisan. |
+| [resources/views](resources/views/) | Pantallas Blade administrativas y portal del cliente. |
+| [resources/views/components](resources/views/components/) | Menú, barra, mensajes, iconos compartidos y encabezados. |
+| [database](database/) | Migraciones, factories y seeders. |
+| [routes](routes/) | Rutas web y programación de tareas. |
+| [tests](tests/) | Pruebas automatizadas. |
+| [Documentacion](Documentacion/) | Manual de usuario. |
+
+## Pruebas y mantenimiento
+
+### Pruebas
+
+[phpunit.xml](phpunit.xml) configura SQLite en memoria y correo de prueba. Verifica que `pdo_sqlite` esté disponible y no utilices una base de producción para ejecutar pruebas.
 
 ```powershell
-& "C:\wamp64\bin\php\php8.3.14\php.exe" artisan test --filter=HealthCheckTest
-& "C:\wamp64\bin\php\php8.3.14\php.exe" artisan test --filter=DashboardTest
+php artisan test --compact
 ```
 
-### 5.2. Probar mediante el servidor integrado de desarrollo (Alternativa rápida)
-Si deseas validar antes de configurar el VirtualHost de Apache en WAMP:
+Para una cobertura específica:
 
 ```powershell
-& "C:\wamp64\bin\php\php8.3.14\php.exe" artisan serve --port=8000
+php artisan test --compact tests\Feature\StaffManagementTest.php
+php artisan test --compact tests\Feature\SectionHeadingTest.php
 ```
 
-Y luego abrir en el navegador o mediante `curl`:
-- Dashboard principal: http://127.0.0.1:8000 o http://127.0.0.1:8000/dashboard
-- Endpoint de salud del sistema: http://127.0.0.1:8000/health
+Herramientas de revisión:
 
-### 5.3. Probar mediante WAMP VirtualHost
-Una vez configurado Apache y reiniciados los servicios de WAMP:
-- Visita: `http://gestionautomotriz.local`
-- Visita: `http://gestionautomotriz.local/health`
+```powershell
+php vendor\bin\pint --dirty --format agent
+php artisan view:cache
+git diff --check
+```
 
----
+La validación visual móvil es complementaria: una prueba de respuesta HTTP no demuestra por sí sola ausencia de desplazamiento horizontal.
 
-## 6. Portal del Cliente (Flujo de Invitación y Acceso Exclusivo)
+### Diagnóstico y soporte
 
-El sistema cuenta con un **Portal del Cliente** completamente aislado del menú administrativo del taller.
+- `/health`: diagnóstico JSON público; devuelve HTTP 200 cuando está correcto y 503 cuando detecta problemas.
+- `/up`: comprobación de salud incorporada por Laravel.
+- Consulta [storage/logs](storage/logs/) y el canal de registro configurado.
+- La tarea automática escribe su salida en `storage\logs\maintenance-reminders.log`.
+- Para cambios de vistas que no se reflejen, considera `php artisan view:clear` y una recarga forzada del navegador.
+- Para cambios de configuración local no reflejados, utiliza `php artisan config:clear`.
 
-### Características del Portal:
-1. **Invitación por Correo:** El administrador del taller puede habilitar el acceso al cliente desde el formulario de creación o enviarle la invitación desde la ficha del cliente.
-2. **Activación Segura por Token:** El cliente recibe un correo (vía Gmail SMTP configurado) con enlace firmado único válido por 48 horas para definir su contraseña.
-3. **Inicio de Sesión:** El cliente puede iniciar sesión ingresando su correo electrónico y su contraseña personal.
-4. **Menú Exclusivo del Cliente (`/portal`):**
-   - **Panel / Inicio:** Resumen de sus vehículos, alertas de mantenimiento y últimos servicios.
-   - **Mis Vehículos:** Fichas de sus vehículos con opción de baja voluntaria sin revelar historial previo a terceros.
-   - **Historial de Mantenimiento:** Distinción visual clara entre mantenimientos verificados por el taller y registros propios del cliente.
-   - **Registrar Mantenimiento Propio:** Formulario para asentar mantenimientos manuales (`origen: cliente`, `no verificado por taller`) que actualizan el odómetro del vehículo.
-   - **Mi Cuenta:** Edición de datos de contacto, cambio de contraseña y baja voluntaria de la cuenta.
-5. **Aislamiento Estricto:** Un usuario con rol `customer` no puede acceder a las rutas del taller (`/dashboard`, `/staff`, `/companies`, `/customers`, etc.), recibiendo respuesta `403 Prohibido`.
+Antes de publicar un incidente, elimina datos personales, credenciales, tokens de invitación y contenidos sensibles de los registros.
 
-### Inicio del administrador de empresa
+### Antes de exponer una instalación
 
-El administrador de taller o concesionario (`company_admin`) inicia sesión directamente en `/company/dashboard`, incluso si había una URL pendiente de la sesión anterior. Las rutas generales `/` y `/dashboard` también lo redirigen a ese panel operativo. La aceptación de políticas sigue siendo obligatoria. El acceso del superadministrador, mecánicos y clientes conserva su comportamiento anterior.
+- Configura HTTPS, `APP_DEBUG=false` y una URL pública correcta.
+- Revisa las credenciales iniciales y las claves de los servicios externos.
+- Restringe el acceso administrativo y evalúa la exposición del diagnóstico público.
+- Respalda base de datos, archivos cargados y configuración protegida; prueba la restauración.
+- Configura y verifica SMTP y el programador.
+- Revisa las migraciones antes de aplicarlas sobre datos existentes.
+- Confirma permisos de escritura y raíz pública del servidor.
+- Valida los flujos reales de cada perfil con datos de prueba, sin enviar correos a clientes reales por accidente.
 
-### Avisos de mantenimiento por correo
+## Colaboración en GitHub
 
-- Las órdenes del taller/concesionario pueden crearse como **Abierta, En progreso, Completada o Cancelada**. Siempre se intenta notificar al propietario después de guardar la orden y sus evidencias.
-- Cada cambio real de estado envía otro correo; editar notas u otros datos sin cambiar el estado no genera avisos duplicados.
-- El destinatario es el correo de la ficha del cliente asociado a la orden. Se envía **CC a los administradores activos de esa misma empresa**, sin duplicar direcciones ni copiar a mecánicos o administradores de otras empresas.
-- El correo incluye vehículo, placa, servicio, orden, fecha, estado actual y, cuando corresponda, estado anterior. Incluye un botón al historial privado del cliente, orientación para activar su acceso y versiones HTML y texto.
-- Los registros personales del portal quedan excluidos de estos avisos y copias.
-- Si falta un email válido del cliente, se guarda el mantenimiento y se muestra una advertencia. Si no hay administradores activos con email válido, se envía al cliente y se advierte que no hubo copia.
-- El envío es inmediato, mediante el mailer configurado, y se realiza fuera de la transacción de guardado. Los errores de transporte se reportan al registro de errores y se muestran como advertencia sin perder el mantenimiento.
-- Para entrega real, configura un mailer de envío (por ejemplo, `MAIL_MAILER=smtp`) y sus credenciales. `log` y `array` no entregan correos a buzones. `APP_URL` debe apuntar a la dirección pública de la aplicación para que el enlace funcione.
+1. Abre un issue que describa el problema o alcance funcional.
+2. Trabaja en una rama específica y mantén el cambio acotado.
+3. No alteres el aislamiento entre empresas ni los permisos como parte de un ajuste visual.
+4. Añade pruebas cuando cambie comportamiento; ejecuta las pruebas afectadas y el formato.
+5. Para cambios de interfaz, comprueba móvil y escritorio, textos largos, estados vacíos y las acciones existentes.
+6. Actualiza este README y el [manual](Documentacion/Manual-de-Usuario.md) cuando cambien procedimientos o pantallas.
+7. En la solicitud de cambios, indica qué cambió, cómo se probó y si requiere migraciones o configuración.
+
+**No incluir en GitHub:** archivos de entorno privados, contraseñas, claves, tokens, respaldos, fotos de clientes, datos personales ni registros sin anonimizar.
