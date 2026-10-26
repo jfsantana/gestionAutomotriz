@@ -3,8 +3,8 @@
 @section('title', 'Planes de Suscripción SaaS')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
+    <div class="text-break">
         <h1 class="h3 mb-0">Planes de Suscripción SaaS</h1>
         <p class="text-muted mb-0 small">Configuración comercial de planes y límites para talleres y concesionarios</p>
     </div>
@@ -23,7 +23,57 @@
                 <a href="{{ route('subscription-plans.create') }}" class="btn btn-primary btn-sm">Crear Primer Plan</a>
             </div>
         @else
-            <div class="table-responsive">
+            <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Planes de Suscripción SaaS">
+                @foreach($plans as $plan)
+                    <li class="card border p-2 text-break">
+                        <h2 class="h6 fw-bold mb-1">{{ $plan->name }}</h2>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @if($plan->is_trial)
+                                <span class="badge bg-info text-dark text-wrap">Prueba ({{ $plan->duration_days ?? 15 }} días)</span>
+                            @else
+                                <span class="badge bg-primary">Comercial</span>
+                            @endif
+                            @if($plan->is_active)
+                                <span class="badge bg-success">Activo</span>
+                            @else
+                                <span class="badge bg-danger">Inactivo</span>
+                            @endif
+                            <span class="badge bg-light text-dark text-wrap border">{{ $plan->subscriptions_count }} suscripciones</span>
+                        </div>
+                        <div class="small">
+                            <div><span class="text-muted">slug:</span> <code>{{ $plan->slug }}</code></div>
+                            <div class="d-flex flex-wrap gap-2 my-1">
+                                <span><strong>${{ number_format($plan->monthly_price, 2) }}</strong> <span class="text-muted">/mes</span></span>
+                                @if($plan->yearly_price > 0)
+                                    <span class="text-secondary">${{ number_format($plan->yearly_price, 2) }} /año</span>
+                                @endif
+                            </div>
+                            <div><span class="text-muted">Mecánicos:</span> <strong>{{ $plan->max_mechanics ?? 'Ilimitado' }}</strong></div>
+                            <div><span class="text-muted">Órdenes/mes:</span> <strong>{{ $plan->max_maintenance_orders_per_month ?? 'Ilimitado' }}</strong></div>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <a href="{{ route('subscription-plans.edit', $plan) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar plan {{ $plan->name }}">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ route('subscription-plans.toggle-status', $plan) }}" class="flex-fill">
+                                @csrf
+                                @method('PATCH')
+                                @if($plan->is_active)
+                                    <button type="submit" class="btn btn-sm btn-outline-warning w-100 py-2" aria-label="Desactivar plan {{ $plan->name }}">
+                                        Desactivar
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-sm btn-outline-success w-100 py-2" aria-label="Activar plan {{ $plan->name }}">
+                                        Activar
+                                    </button>
+                                @endif
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>

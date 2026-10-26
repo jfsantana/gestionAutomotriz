@@ -3,8 +3,8 @@
 @section('title', 'Recordatorios y Próximos Mantenimientos')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
+    <div class="text-break">
         <h1 class="h3 mb-0">Recordatorios de Mantenimiento</h1>
         <p class="text-muted mb-0 small">
             Control operativo de próximos vencimientos por fecha y kilometraje
@@ -103,7 +103,102 @@
                 <a href="{{ route('maintenance-orders.create') }}" class="btn btn-sm btn-primary">Registrar Nueva Orden</a>
             </div>
         @else
-            <div class="table-responsive">
+            <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Recordatorios de Mantenimiento">
+                @foreach($reminders as $order)
+                    <li class="card border p-2 text-break">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <span class="badge text-wrap bg-{{ $order->reminder['badge_class'] }} px-2 py-1">
+                                {{ $order->reminder['status_label'] }}
+                            </span>
+                            <span class="badge bg-dark text-uppercase text-wrap px-2 py-1">{{ $order->vehicle?->plate }}</span>
+                        </div>
+                        <h2 class="h6 fw-bold mb-1">{{ $order->service_name_snapshot }}</h2>
+                        <div class="small">
+                            <div class="fw-semibold">{{ $order->vehicle?->make }} {{ $order->vehicle?->model }}</div>
+                            <div><span class="text-muted">Cliente:</span> {{ $order->customer?->full_name }}</div>
+                            @if($order->customer?->phone)
+                                <div><span class="text-muted">Tel.:</span> {{ $order->customer->phone }}</div>
+                            @endif
+                            <div class="text-muted">Realizado: {{ $order->service_date?->format('d/m/Y') }} ({{ number_format($order->current_mileage) }} km)</div>
+                            <div class="mt-2">
+                                <span class="text-muted">Vencimiento fecha:</span>
+                                @if($order->next_due_date)
+                                    <strong class="{{ $order->reminder['date_status'] === 'overdue' ? 'text-danger' : ($order->reminder['date_status'] === 'due_soon' ? 'text-warning text-dark' : 'text-dark') }}">
+                                        {{ $order->next_due_date->format('d/m/Y') }}
+                                    </strong>
+                                    <span class="d-block text-muted">
+                                        @if($order->reminder['days_remaining'] < 0)
+                                            Venció hace {{ abs($order->reminder['days_remaining']) }} días
+                                        @elseif($order->reminder['days_remaining'] === 0)
+                                            Vence hoy
+                                        @else
+                                            En {{ $order->reminder['days_remaining'] }} días
+                                        @endif
+                                    </span>
+                                @else
+                                    —
+                                @endif
+                            </div>
+                            <div class="mt-1">
+                                <span class="text-muted">Vencimiento kilometraje:</span>
+                                @if($order->next_due_mileage)
+                                    <strong class="{{ $order->reminder['mileage_status'] === 'overdue' ? 'text-danger' : ($order->reminder['mileage_status'] === 'due_soon' ? 'text-warning text-dark' : 'text-dark') }}">
+                                        {{ number_format($order->next_due_mileage) }} km
+                                    </strong>
+                                    <span class="d-block text-muted">
+                                        Actual: {{ number_format($order->vehicle?->current_mileage ?? 0) }} km
+                                        @if($order->reminder['mileage_remaining'] !== null)
+                                            @if($order->reminder['mileage_remaining'] <= 0)
+                                                <span class="text-danger fw-semibold">({{ number_format(abs($order->reminder['mileage_remaining'])) }} km excedidos)</span>
+                                            @else
+                                                (Faltan {{ number_format($order->reminder['mileage_remaining']) }} km)
+                                            @endif
+                                        @endif
+                                    </span>
+                                @else
+                                    —
+                                @endif
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            @if($order->vehicle)
+                                <a href="{{ route('maintenance-orders.create', ['vehicle_id' => $order->vehicle->id]) }}" class="btn btn-sm btn-outline-success flex-fill py-2" title="Registrar nuevo servicio">
+                                    + Servicio
+                                </a>
+                                <a href="{{ route('vehicles.show', $order->vehicle) }}" class="btn btn-sm btn-outline-secondary flex-fill py-2" title="Ver historial">
+                                    Vehículo
+                                </a>
+                            @endif
+                            <a href="{{ route('maintenance-orders.show', $order) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" title="Ver orden original">
+                                Orden
+                            </a>
+                        </div>
+                        @can('send-maintenance-reminder', $order)
+                            <form method="POST" action="{{ route('reminders.send', $order) }}" class="mt-2"
+                                data-email="{{ $order->customer?->email }}"
+                                onsubmit="if (!confirm('¿Enviar un recordatorio de mantenimiento a ' + this.dataset.email + '?')) return false; this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Enviando...';">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-primary w-100 py-2"
+                                    @disabled($order->reminder_email_error)
+                                    aria-label="Enviar recordatorio de la orden {{ $order->order_number ?? $order->id }}"
+                                    title="{{ $order->reminder_email_error ?? 'Enviar recordatorio al email del cliente' }}">
+                                    Enviar recordatorio
+                                </button>
+                                @if($order->reminder_email_error)
+                                    <small class="d-block text-muted mt-1">{{ $order->reminder_email_error }}</small>
+                                @endif
+                            </form>
+                            @if($order->reminder_sent_at)
+                                <small class="d-block text-muted mt-1">
+                                    Último envío: {{ $order->reminder_sent_at->copy()->timezone(\App\Services\MaintenanceReminderNotificationService::TIMEZONE)->format('d/m/Y H:i') }} (Caracas)
+                                </small>
+                            @endif
+                        @endcan
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>

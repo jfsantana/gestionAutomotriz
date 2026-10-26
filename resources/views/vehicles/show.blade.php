@@ -106,7 +106,7 @@
 
         {{-- Historial de Mantenimientos del Vehículo --}}
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="card-title mb-0 fw-semibold">
                     Historial de Mantenimientos
                     <span class="badge bg-primary ms-1">{{ $vehicle->maintenanceOrders->count() }}</span>
@@ -124,7 +124,60 @@
                         </a>
                     </div>
                 @else
-                    <div class="table-responsive">
+                    <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Historial de Mantenimientos">
+                        @foreach($vehicle->maintenanceOrders as $mOrder)
+                            <li class="card border p-2 text-break">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1 small">
+                                    <strong>{{ $mOrder->order_number ?? '#' . $mOrder->id }}</strong>
+                                    <span class="text-muted">{{ $mOrder->service_date?->format('d/m/Y') }}</span>
+                                </div>
+                                <h3 class="h6 fw-bold mb-1">{{ $mOrder->service_name_snapshot }}</h3>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                    <span class="badge {{ $mOrder->maintenance_type === 'preventive' ? 'bg-success' : 'bg-warning text-dark' }}">
+                                        {{ $mOrder->maintenance_type === 'preventive' ? 'Preventivo' : 'Correctivo' }}
+                                    </span>
+                                    @if($mOrder->status === 'completed')
+                                        <span class="badge bg-success">Completada</span>
+                                    @elseif($mOrder->status === 'in_progress')
+                                        <span class="badge bg-primary">En Progreso</span>
+                                    @elseif($mOrder->status === 'cancelled')
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    @else
+                                        <span class="badge bg-secondary">Abierta</span>
+                                    @endif
+                                </div>
+                                <div class="small">
+                                    <div class="mb-1">
+                                        @if($mOrder->origin === 'customer')
+                                            <span class="badge text-wrap bg-warning text-dark border border-warning-subtle" title="Mantenimiento realizado fuera del taller/concesionario">
+                                                &#9888; Cliente (Fuera de taller)
+                                            </span>
+                                        @else
+                                            <span class="badge text-wrap bg-success-subtle text-success border border-success-subtle">
+                                                &#10003; Realizado en Taller
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div><span class="text-muted">Kilometraje:</span> {{ number_format($mOrder->current_mileage) }} km</div>
+                                    <div>
+                                        <span class="text-muted">Mecánico:</span>
+                                        @if($mOrder->mechanic)
+                                            {{ $mOrder->mechanic->name }}
+                                        @elseif($mOrder->origin === 'customer')
+                                            Particular / Externo
+                                        @else
+                                            —
+                                        @endif
+                                    </div>
+                                </div>
+                                <a href="{{ route('maintenance-orders.show', $mOrder) }}" class="btn btn-sm btn-outline-secondary w-100 py-2 mt-2" aria-label="Ver mantenimiento {{ $mOrder->order_number ?? '#' . $mOrder->id }}">
+                                    Ver
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>

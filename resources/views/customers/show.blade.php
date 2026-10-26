@@ -116,7 +116,7 @@
 
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="card-title mb-0 fw-semibold">
                     Vehículos Registrados 
                     <span class="badge bg-primary ms-1">{{ $customer->vehicles->count() }}</span>
@@ -134,7 +134,51 @@
                         </a>
                     </div>
                 @else
-                    <div class="table-responsive">
+                    <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Vehículos Registrados">
+                        @foreach($customer->vehicles as $vehicle)
+                            <li class="card border p-2 text-break">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                    <span class="badge bg-dark text-uppercase text-wrap px-2 py-1">{{ $vehicle->plate }}</span>
+                                    @if(isset($vehicleReminders[$vehicle->id]))
+                                        <span class="badge text-wrap bg-{{ $vehicleReminders[$vehicle->id]['evaluation']['badge_class'] }}">
+                                            {{ $vehicleReminders[$vehicle->id]['evaluation']['status_label'] }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    @if($vehicle->photo_path)
+                                        <img src="{{ asset('storage/' . $vehicle->photo_path) }}" alt="Foto de {{ $vehicle->make }} {{ $vehicle->model }}" width="42" height="32" class="rounded border object-fit-cover flex-shrink-0" loading="lazy">
+                                    @endif
+                                    <h3 class="h6 fw-bold mb-0">{{ $vehicle->make }} {{ $vehicle->model }}</h3>
+                                </div>
+                                <div class="small">
+                                    @if($vehicle->vin)
+                                        <div class="text-muted">VIN: {{ $vehicle->vin }}</div>
+                                    @endif
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <span><span class="text-muted">Año:</span> {{ $vehicle->year ?? '—' }}</span>
+                                        @if($vehicle->color)
+                                            <span><span class="text-muted">Color:</span> {{ $vehicle->color }}</span>
+                                        @endif
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <span><strong>{{ number_format($vehicle->current_mileage) }}</strong> km</span>
+                                        <span><span class="text-muted">Combustible:</span> {{ $vehicle->fuel_type ? ucfirst($vehicle->fuel_type) : '—' }}</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-sm btn-outline-secondary flex-fill py-2" aria-label="Ver vehículo {{ $vehicle->plate }}">
+                                        Ver
+                                    </a>
+                                    <a href="{{ route('vehicles.edit', $vehicle) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar vehículo {{ $vehicle->plate }}">
+                                        Editar
+                                    </a>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>

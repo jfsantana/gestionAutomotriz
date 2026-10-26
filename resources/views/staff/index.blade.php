@@ -3,8 +3,8 @@
 @section('title', 'Personal Operativo')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
+    <div class="text-break">
         <h1 class="h3 mb-0">Personal Operativo (Mecánicos)</h1>
         <p class="text-muted mb-0 small">
             @if(auth()->user()->role === 'company_admin')
@@ -29,7 +29,49 @@
                 <a href="{{ route('staff.create') }}" class="btn btn-primary btn-sm">Registrar Primer Mecánico</a>
             </div>
         @else
-            <div class="table-responsive">
+            <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Personal Operativo (Mecánicos)">
+                @foreach($staff as $member)
+                    <li class="card border p-2 text-break">
+                        <h2 class="h6 fw-bold mb-1">{{ $member->name }}</h2>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <small class="text-muted">ID: #{{ $member->id }}</small>
+                            <span class="badge bg-secondary text-uppercase text-wrap">{{ $member->role }}</span>
+                            @if($member->is_active)
+                                <span class="badge bg-success">Activo</span>
+                            @else
+                                <span class="badge bg-danger">Inactivo</span>
+                            @endif
+                        </div>
+                        <div class="small">
+                            <div><span class="text-muted">Usuario:</span> <span class="fw-semibold">{{ $member->username }}</span></div>
+                            <div class="text-secondary">{{ $member->email }}</div>
+                            @if(auth()->user()->role === 'super_admin')
+                                <div><span class="text-muted">Empresa:</span> {{ $member->company?->name ?? '—' }}</div>
+                            @endif
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <a href="{{ route('staff.edit', $member) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar a {{ $member->name }}">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ route('staff.toggle-status', $member) }}" class="flex-fill">
+                                @csrf
+                                @method('PATCH')
+                                @if($member->is_active)
+                                    <button type="submit" class="btn btn-sm btn-outline-warning w-100 py-2" title="Desactivar acceso" aria-label="Desactivar acceso de {{ $member->name }}">
+                                        Desactivar
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-sm btn-outline-success w-100 py-2" title="Activar acceso" aria-label="Activar acceso de {{ $member->name }}">
+                                        Activar
+                                    </button>
+                                @endif
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>

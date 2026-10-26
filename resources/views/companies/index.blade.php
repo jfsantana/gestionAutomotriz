@@ -3,8 +3,8 @@
 @section('title', 'Empresas y Talleres')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
+    <div class="text-break">
         <h1 class="h3 mb-0">Empresas y Talleres</h1>
         <p class="text-muted mb-0 small">Administración SaaS de talleres y concesionarios afiliados</p>
     </div>
@@ -23,7 +23,59 @@
                 <a href="{{ route('companies.create') }}" class="btn btn-primary btn-sm">Registrar la Primera Empresa</a>
             </div>
         @else
-            <div class="table-responsive">
+            <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Empresas y Talleres">
+                @foreach($companies as $company)
+                    <li class="card border p-2 text-break">
+                        <h2 class="h6 fw-bold mb-1">{{ $company->name }}</h2>
+                        <div class="mb-2">
+                            @if($company->status === 'active')
+                                <span class="badge bg-success">Activo</span>
+                            @elseif($company->status === 'trial')
+                                <span class="badge bg-warning text-dark">Prueba (Trial)</span>
+                            @else
+                                <span class="badge bg-danger">Suspendido</span>
+                            @endif
+                        </div>
+                        <div class="small">
+                            <div><span class="text-muted">slug:</span> <code>{{ $company->slug }}</code></div>
+                            <div><span class="text-muted">RNC / Tax ID:</span> {{ $company->tax_id ?? '—' }}</div>
+                            @if($company->email)
+                                <div class="text-secondary">{{ $company->email }}</div>
+                            @endif
+                            @if($company->phone)
+                                <div><span class="text-muted">Tel.:</span> {{ $company->phone }}</div>
+                            @endif
+                            @if(!$company->email && !$company->phone)
+                                <div class="text-muted">Sin datos de contacto</div>
+                            @endif
+                            <div>
+                                <span class="text-muted">Ubicación:</span>
+                                {{ $company->city ?? '—' }}{{ $company->state ? ', ' . $company->state : '' }}
+                                @if($company->country)
+                                    <span class="badge bg-light text-dark text-wrap border">{{ $company->country }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            <a href="{{ route('companies.show', $company) }}" class="btn btn-sm btn-outline-secondary flex-fill py-2" aria-label="Ver empresa {{ $company->name }}">
+                                Ver
+                            </a>
+                            <a href="{{ route('companies.edit', $company) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar empresa {{ $company->name }}">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ route('companies.destroy', $company) }}" class="flex-fill" onsubmit="return confirm('¿Seguro que deseas eliminar esta empresa?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100 py-2" aria-label="Eliminar empresa {{ $company->name }}">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>

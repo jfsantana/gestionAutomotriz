@@ -3,8 +3,8 @@
 @section('title', 'Clientes y Propietarios')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
+    <div class="text-break">
         <h1 class="h3 mb-0">Clientes y Propietarios</h1>
         <p class="text-muted mb-0 small">
             @if(auth()->user()->role === 'company_admin')
@@ -29,7 +29,51 @@
                 <a href="{{ route('customers.create') }}" class="btn btn-primary btn-sm">Registrar Primer Cliente</a>
             </div>
         @else
-            <div class="table-responsive">
+            <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Clientes y Propietarios">
+                @foreach($customers as $customer)
+                    <li class="card border p-2 text-break">
+                        <h2 class="h6 fw-bold mb-1">{{ $customer->full_name }}</h2>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <small class="text-muted">ID: #{{ $customer->id }}</small>
+                            @if($customer->customer_type === 'fleet_owner')
+                                <span class="badge bg-info text-dark">Flota</span>
+                            @else
+                                <span class="badge bg-secondary">Particular</span>
+                            @endif
+                            <span class="badge {{ $customer->vehicles_count > 0 ? 'bg-primary' : 'bg-light text-secondary border' }}">
+                                {{ $customer->vehicles_count }} {{ $customer->vehicles_count === 1 ? 'vehículo' : 'vehículos' }}
+                            </span>
+                        </div>
+                        <div class="small">
+                            @if($customer->phone)
+                                <div><span class="text-muted">Tel.:</span> {{ $customer->phone }}</div>
+                            @endif
+                            @if($customer->email)
+                                <div class="text-muted">{{ $customer->email }}</div>
+                            @endif
+                            @if(!$customer->phone && !$customer->email)
+                                <div class="text-muted">Sin datos de contacto</div>
+                            @endif
+                            @if($customer->document_number)
+                                <div><span class="text-muted">{{ strtoupper($customer->document_type ?? 'DOC') }}:</span> {{ $customer->document_number }}</div>
+                            @endif
+                            @if(auth()->user()->role === 'super_admin')
+                                <div><span class="text-muted">Empresa:</span> {{ $customer->company?->name ?? '—' }}</div>
+                            @endif
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <a href="{{ route('customers.show', $customer) }}" class="btn btn-sm btn-outline-secondary flex-fill py-2" aria-label="Ver ficha de {{ $customer->full_name }}">
+                                Ver Ficha
+                            </a>
+                            <a href="{{ route('customers.edit', $customer) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar a {{ $customer->full_name }}">
+                                Editar
+                            </a>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>

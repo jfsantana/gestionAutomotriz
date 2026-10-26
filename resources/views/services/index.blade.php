@@ -3,8 +3,8 @@
 @section('title', 'Catálogo de Servicios')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
+    <div class="text-break">
         <h1 class="h3 mb-0">Catálogo de Servicios</h1>
         <p class="text-muted mb-0 small">
             @if(auth()->user()->role === 'company_admin')
@@ -29,7 +29,62 @@
                 <a href="{{ route('services.create') }}" class="btn btn-primary btn-sm">Crear Primer Servicio</a>
             </div>
         @else
-            <div class="table-responsive">
+            <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Catálogo de Servicios">
+                @foreach($services as $item)
+                    <li class="card border p-2 text-break">
+                        <h2 class="h6 fw-bold mb-1">{{ $item->name }}</h2>
+                        @if($item->description)
+                            <p class="small text-muted mb-2">{{ Str::limit($item->description, 60) }}</p>
+                        @endif
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @if($item->maintenance_type === 'preventive')
+                                <span class="badge bg-success">Preventivo</span>
+                            @else
+                                <span class="badge bg-warning text-dark">Correctivo</span>
+                            @endif
+                            @if($item->is_active)
+                                <span class="badge bg-success">Activo</span>
+                            @else
+                                <span class="badge bg-danger">Inactivo</span>
+                            @endif
+                        </div>
+                        <div class="small">
+                            <div>
+                                <span class="text-muted">Control sugerido:</span>
+                                {{ $item->default_interval_days ? $item->default_interval_days . ' días' : '' }}
+                                {{ $item->default_interval_days && $item->default_interval_mileage ? ' / ' : '' }}
+                                {{ $item->default_interval_mileage ? number_format($item->default_interval_mileage) . ' km' : '' }}
+                                @if(!$item->default_interval_days && !$item->default_interval_mileage)
+                                    A criterio de uso
+                                @endif
+                            </div>
+                            @if(auth()->user()->role === 'super_admin')
+                                <div><span class="text-muted">Empresa:</span> {{ $item->company?->name ?? '—' }}</div>
+                            @endif
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <a href="{{ route('services.edit', $item) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar servicio {{ $item->name }}">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ route('services.toggle-status', $item) }}" class="flex-fill">
+                                @csrf
+                                @method('PATCH')
+                                @if($item->is_active)
+                                    <button type="submit" class="btn btn-sm btn-outline-warning w-100 py-2" aria-label="Desactivar servicio {{ $item->name }}">
+                                        Desactivar
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-sm btn-outline-success w-100 py-2" aria-label="Activar servicio {{ $item->name }}">
+                                        Activar
+                                    </button>
+                                @endif
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>

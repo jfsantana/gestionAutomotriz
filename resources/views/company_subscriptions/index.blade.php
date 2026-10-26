@@ -3,8 +3,8 @@
 @section('title', 'Suscripciones por Empresa')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
+    <div class="text-break">
         <h1 class="h3 mb-0">Suscripciones por Empresa</h1>
         <p class="text-muted mb-0 small">Control centralizado de planes, vigencia y acceso operativo de talleres</p>
     </div>
@@ -23,7 +23,95 @@
                 <a href="{{ route('companies.create') }}" class="btn btn-primary btn-sm">Registrar Primera Empresa</a>
             </div>
         @else
-            <div class="table-responsive">
+            <ul class="d-md-none list-unstyled d-flex flex-column gap-2 p-2 mb-0 bg-body-tertiary" aria-label="Suscripciones por Empresa">
+                @foreach($companies as $company)
+                    @php
+                        $sub = $company->currentSubscription;
+                    @endphp
+                    <li class="card border p-2 text-break">
+                        <h2 class="h6 fw-bold mb-1">{{ $company->name }}</h2>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @if($sub)
+                                @if($sub->status === 'active')
+                                    <span class="badge bg-success">Activo</span>
+                                @elseif($sub->status === 'trial')
+                                    <span class="badge bg-info text-dark">Prueba (Trial)</span>
+                                @elseif($sub->status === 'expired')
+                                    <span class="badge bg-warning text-dark">Vencido</span>
+                                @elseif($sub->status === 'suspended')
+                                    <span class="badge bg-danger">Suspendido</span>
+                                @else
+                                    <span class="badge bg-secondary">Cancelado</span>
+                                @endif
+                            @else
+                                <span class="badge bg-light text-dark border">Sin registro</span>
+                            @endif
+                            @if($sub && $sub->isOperable())
+                                <span class="badge bg-success">Habilitado</span>
+                            @else
+                                <span class="badge bg-danger">Bloqueado</span>
+                            @endif
+                        </div>
+                        <div class="small">
+                            <div><span class="text-muted">slug:</span> <code>{{ $company->slug }}</code></div>
+                            <div>
+                                <span class="text-muted">Plan:</span>
+                                @if($sub && $sub->plan)
+                                    <span class="fw-semibold">{{ $sub->plan->name }}</span>
+                                    <span class="text-muted">${{ number_format($sub->plan->monthly_price, 2) }}/mes</span>
+                                @else
+                                    <span class="text-danger">Sin plan asignado</span>
+                                @endif
+                            </div>
+                            <div><span class="text-muted">Ciclo:</span> <span class="text-uppercase text-secondary">{{ $sub?->billing_cycle ?? '—' }}</span></div>
+                            @if($sub)
+                                <div>Desde: {{ $sub->starts_at?->format('d/m/Y') }}</div>
+                                <div class="text-muted">
+                                    Hasta: {{ $sub->ends_at ? $sub->ends_at->format('d/m/Y') : 'Sin límite' }}
+                                    @if($sub->ends_at)
+                                        @php $days = $sub->daysRemaining(); @endphp
+                                        @if($days < 0)
+                                            <span class="text-danger">({{ abs($days) }}d vencidos)</span>
+                                        @elseif($days <= 7)
+                                            <span class="text-warning text-dark fw-bold">({{ $days }}d restantes)</span>
+                                        @else
+                                            <span>({{ $days }}d)</span>
+                                        @endif
+                                    @endif
+                                </div>
+                            @else
+                                <div class="text-muted">Vigencia: —</div>
+                            @endif
+                        </div>
+                        @if($sub)
+                            <div class="d-flex gap-2 mt-2">
+                                <a href="{{ route('company-subscriptions.edit', $sub) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar suscripción de {{ $company->name }}">
+                                    Editar
+                                </a>
+                                <form method="POST" action="{{ route('company-subscriptions.toggle-suspension', $sub) }}" class="flex-fill">
+                                    @csrf
+                                    @method('PATCH')
+                                    @if($sub->status === 'suspended')
+                                        <button type="submit" class="btn btn-sm btn-outline-success w-100 py-2" aria-label="Reactivar acceso de {{ $company->name }}">
+                                            Reactivar
+                                        </button>
+                                    @else
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100 py-2" aria-label="Suspender acceso de {{ $company->name }}">
+                                            Suspender
+                                        </button>
+                                    @endif
+                                </form>
+                            </div>
+                        @else
+                            <a href="{{ route('company-subscriptions.create', ['company_id' => $company->id]) }}" class="btn btn-sm btn-outline-primary w-100 py-2 mt-2" aria-label="Asignar plan a {{ $company->name }}">
+                                Asignar Plan
+                            </a>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
