@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0">Editar Plan: {{ $plan->name }}</h1>
+        <x-page-heading section="subscription-plans" class="h3 mb-0">Editar Plan: {{ $plan->name }}</x-page-heading>
         <p class="text-muted mb-0 small">Modifica precios, cuotas y disponibilidad comercial</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">

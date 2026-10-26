@@ -6,7 +6,7 @@
 {{-- Encabezado Principal --}}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0 fw-bold text-dark">Dashboard</h1>
+        <x-page-heading section="dashboard" class="h3 mb-0 fw-bold text-dark">Dashboard</x-page-heading>
         <p class="text-muted mb-0 small">
             Panel de control operativo y trazabilidad vehicular del taller
             @if(auth()->user()?->company)

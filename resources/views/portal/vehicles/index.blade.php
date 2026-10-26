@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-3 mb-4 border-bottom">
     <div>
-        <h1 class="h4 mb-0 fw-bold text-dark">Mis Vehículos</h1>
+        <x-page-heading section="vehicles" class="h4 mb-0 fw-bold text-dark">Mis Vehículos</x-page-heading>
         <p class="text-muted mb-0 small">Consulta los vehículos registrados a tu nombre</p>
     </div>
 </div>

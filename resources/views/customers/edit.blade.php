@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0">Editar Cliente: {{ $customer->full_name }}</h1>
+        <x-page-heading section="customers" class="h3 mb-0">Editar Cliente: {{ $customer->full_name }}</x-page-heading>
         <p class="text-muted mb-0 small">Modifica los datos de contacto o documentación</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">

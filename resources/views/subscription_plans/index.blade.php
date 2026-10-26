@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
     <div class="text-break">
-        <h1 class="h3 mb-0">Planes de Suscripción SaaS</h1>
+        <x-page-heading section="subscription-plans" class="h3 mb-0">Planes de Suscripción SaaS</x-page-heading>
         <p class="text-muted mb-0 small">Configuración comercial de planes y límites para talleres y concesionarios</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">

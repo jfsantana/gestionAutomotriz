@@ -68,7 +68,7 @@
                 <div class="d-flex align-items-center">
                     <img src="{{ asset('images/autobitacoraLogo.png') }}" alt="AutoBitacora" height="32" class="me-2 rounded bg-white p-1">
                     <div>
-                        <h5 class="mb-0 fw-bold">{{ $policy->title }}</h5>
+                        <h5 class="mb-0 fw-bold"><x-section-icon name="policies" class="me-1" />{{ $policy->title }}</h5>
                         <small class="text-secondary">AutoBitacora SaaS &bull; Versión {{ $policy->version }} &bull; Vigencia: {{ $policy->effective_date?->format('d/m/Y') }}</small>
                     </div>
                 </div>

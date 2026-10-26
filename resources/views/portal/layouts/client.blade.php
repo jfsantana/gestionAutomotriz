@@ -127,19 +127,19 @@
             <small class="text-muted text-uppercase fw-bold d-block px-2 mb-2" style="font-size: 0.72rem;">Mi Cuenta</small>
             <nav class="nav flex-column">
                 <a href="{{ route('portal.dashboard') }}" class="client-nav-link {{ request()->routeIs('portal.dashboard') ? 'active' : '' }}">
-                    <span class="client-nav-icon">&#128202;</span> Inicio / Resumen
+                    <x-section-icon name="dashboard" class="client-nav-icon" /> Inicio / Resumen
                 </a>
                 <a href="{{ route('portal.vehicles.index') }}" class="client-nav-link {{ request()->routeIs('portal.vehicles.*') ? 'active' : '' }}">
-                    <span class="client-nav-icon">&#128663;</span> Mis Vehículos
+                    <x-section-icon name="vehicles" class="client-nav-icon" /> Mis Vehículos
                 </a>
                 <a href="{{ route('portal.maintenance.index') }}" class="client-nav-link {{ request()->routeIs('portal.maintenance.index') ? 'active' : '' }}">
-                    <span class="client-nav-icon">&#128221;</span> Historial de Servicios
+                    <x-section-icon name="maintenance-orders" class="client-nav-icon" /> Historial de Servicios
                 </a>
                 <a href="{{ route('portal.maintenance.create') }}" class="client-nav-link {{ request()->routeIs('portal.maintenance.create') ? 'active' : '' }}">
-                    <span class="client-nav-icon">&#10133;</span> Registrar Servicio Propio
+                    <x-section-icon name="personal-maintenance" class="client-nav-icon" /> Registrar Servicio Propio
                 </a>
                 <a href="{{ route('portal.account') }}" class="client-nav-link {{ request()->routeIs('portal.account') ? 'active' : '' }}">
-                    <span class="client-nav-icon">&#128100;</span> Mi Cuenta y Clave
+                    <x-section-icon name="account" class="client-nav-icon" /> Mi Cuenta y Clave
                 </a>
             </nav>
 

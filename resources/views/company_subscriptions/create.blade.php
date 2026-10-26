@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0">Asignar Suscripción a Empresa</h1>
+        <x-page-heading section="company-subscriptions" class="h3 mb-0">Asignar Suscripción a Empresa</x-page-heading>
         <p class="text-muted mb-0 small">Asocia un plan SaaS y define las fechas de vigencia</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">

@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
     <div class="text-break">
-        <h1 class="h3 mb-0">Suscripciones por Empresa</h1>
+        <x-page-heading section="company-subscriptions" class="h3 mb-0">Suscripciones por Empresa</x-page-heading>
         <p class="text-muted mb-0 small">Control centralizado de planes, vigencia y acceso operativo de talleres</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">

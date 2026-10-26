@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
     <div class="text-break">
-        <h1 class="h3 mb-0">Personal Operativo (Mecánicos)</h1>
+        <x-page-heading section="staff" class="h3 mb-0">Personal Operativo (Mecánicos)</x-page-heading>
         <p class="text-muted mb-0 small">
             @if(auth()->user()->role === 'company_admin')
                 Gestión del equipo de trabajo de <strong>{{ auth()->user()->company?->name }}</strong>

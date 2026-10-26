@@ -268,7 +268,7 @@
                         <div class="d-flex align-items-center">
                             <img src="{{ asset('images/autobitacoraLogo.png') }}" alt="AutoBitacora" height="28" class="me-2 rounded bg-white p-1">
                             <div>
-                                <h6 class="modal-title fw-bold mb-0" id="viewAcceptedPolicyModalLabel">{{ $currentPlatformPolicy->title }}</h6>
+                                <h6 class="modal-title fw-bold mb-0" id="viewAcceptedPolicyModalLabel"><x-section-icon name="policies" class="me-1" />{{ $currentPlatformPolicy->title }}</h6>
                                 <small class="text-secondary">Versión {{ $currentPlatformPolicy->version }} &bull; Vigencia: {{ $currentPlatformPolicy->effective_date?->format('d/m/Y') }}</small>
                             </div>
                         </div>

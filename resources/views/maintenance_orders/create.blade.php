@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0">Registrar Orden de Mantenimiento</h1>
+        <x-page-heading section="maintenance-orders" class="h3 mb-0">Registrar Orden de Mantenimiento</x-page-heading>
         <p class="text-muted mb-0 small">
             @if(isset($preselectedVehicle) && $preselectedVehicle)
                 Servicio sobre el vehículo con placa <strong>{{ $preselectedVehicle->plate }}</strong> ({{ $preselectedVehicle->make }} {{ $preselectedVehicle->model }})

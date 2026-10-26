@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
     <div class="text-break">
-        <h1 class="h3 mb-0">Administradores de Empresa</h1>
+        <x-page-heading section="company-admins" class="h3 mb-0">Administradores de Empresa</x-page-heading>
         <p class="text-muted mb-0 small">Gestión de usuarios con rol <code>company_admin</code> vinculados a talleres y concesionarios</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">

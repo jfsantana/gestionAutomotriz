@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-3 mb-4 border-bottom">
     <div>
-        <h1 class="h4 mb-0 fw-bold text-dark">Mi Cuenta y Seguridad</h1>
+        <x-page-heading section="account" class="h4 mb-0 fw-bold text-dark">Mi Cuenta y Seguridad</x-page-heading>
         <p class="text-muted mb-0 small">Administra tus datos personales y credenciales de acceso</p>
     </div>
 </div>

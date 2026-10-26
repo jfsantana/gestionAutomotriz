@@ -7,7 +7,7 @@
     <div class="d-flex align-items-center">
         <img src="{{ asset('images/autobitacoraLogo.png') }}" alt="AutoBitacora" height="42" class="me-3 rounded shadow-sm bg-white p-1">
         <div>
-            <h1 class="h3 mb-0 fw-bold text-dark">AutoBitacora <span class="badge bg-primary fs-6">SaaS</span></h1>
+            <x-page-heading section="dashboard" class="h3 mb-0 fw-bold text-dark">AutoBitacora <span class="badge bg-primary fs-6">SaaS</span></x-page-heading>
             <p class="text-muted mb-0 small">Sistema Multiempresa de Gestión y Trazabilidad Automotriz</p>
         </div>
     </div>

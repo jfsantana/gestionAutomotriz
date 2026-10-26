@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
     <div class="text-break">
-        <h1 class="h3 mb-0">Recordatorios de Mantenimiento</h1>
+        <x-page-heading section="reminders" class="h3 mb-0">Recordatorios de Mantenimiento</x-page-heading>
         <p class="text-muted mb-0 small">
             Control operativo de próximos vencimientos por fecha y kilometraje
             @if(auth()->user()->company)

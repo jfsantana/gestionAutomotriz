@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0">Crear Plan de Suscripción</h1>
+        <x-page-heading section="subscription-plans" class="h3 mb-0">Crear Plan de Suscripción</x-page-heading>
         <p class="text-muted mb-0 small">Define precios, límites y características para comercializar la plataforma</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">

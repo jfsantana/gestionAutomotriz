@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0">Nuevo Vehículo</h1>
+        <x-page-heading section="vehicles" class="h3 mb-0">Nuevo Vehículo</x-page-heading>
         <p class="text-muted mb-0 small">
             Asignado al cliente: <strong>{{ $customer->full_name }}</strong> 
             @if($customer->document_number)

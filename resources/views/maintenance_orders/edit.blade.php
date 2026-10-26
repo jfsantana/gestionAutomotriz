@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h3 mb-0">Editar Orden: {{ $order->order_number ?? '#' . $order->id }}</h1>
+        <x-page-heading section="maintenance-orders" class="h3 mb-0">Editar Orden: {{ $order->order_number ?? '#' . $order->id }}</x-page-heading>
         <p class="text-muted mb-0 small">
             Vehículo: <strong>{{ $order->vehicle?->plate }}</strong> &bull; Cliente: <strong>{{ $order->customer?->full_name }}</strong>
         </p>

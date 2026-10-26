@@ -9,7 +9,7 @@
             <ul class="nav flex-column mt-1">
                 <li class="nav-item mb-1">
                     <a class="nav-link {{ request()->routeIs('dashboard', 'home', 'company.dashboard') ? 'active fw-bold' : '' }}" href="{{ route(auth()->user()?->role === 'company_admin' ? 'company.dashboard' : 'dashboard') }}" title="Panel Principal">
-                        <span class="nav-icon">&#128202;</span>
+                        <x-section-icon name="dashboard" class="nav-icon" />
                         <span class="nav-text">Panel de Control</span>
                     </a>
                 </li>
@@ -27,7 +27,7 @@
                     @if(in_array(auth()->user()->role, ['super_admin', 'company_admin'], true))
                         <li class="nav-item mb-1">
                             <a class="nav-link {{ request()->routeIs('customers.*') ? 'active fw-bold' : '' }}" href="{{ route('customers.index') }}" title="Clientes y Propietarios">
-                                <span class="nav-icon">&#128101;</span>
+                                <x-section-icon name="customers" class="nav-icon" />
                                 <span class="nav-text">Clientes</span>
                             </a>
                         </li>
@@ -37,7 +37,7 @@
                     @if(in_array(auth()->user()->role, ['super_admin', 'company_admin'], true))
                         <li class="nav-item mb-1">
                             <a class="nav-link {{ request()->routeIs('vehicles.*') ? 'active fw-bold' : '' }}" href="{{ route('vehicles.index') }}" title="Inventario de Vehículos">
-                                <span class="nav-icon">&#128663;</span>
+                                <x-section-icon name="vehicles" class="nav-icon" />
                                 <span class="nav-text">Vehículos</span>
                             </a>
                         </li>
@@ -47,7 +47,7 @@
                     @if(in_array(auth()->user()->role, ['super_admin', 'company_admin'], true))
                         <li class="nav-item mb-1">
                             <a class="nav-link {{ request()->routeIs('services.*') ? 'active fw-bold' : '' }}" href="{{ route('services.index') }}" title="Catálogo de Servicios">
-                                <span class="nav-icon">&#128295;</span>
+                                <x-section-icon name="services" class="nav-icon" />
                                 <span class="nav-text">Servicios</span>
                             </a>
                         </li>
@@ -56,7 +56,7 @@
                     {{-- 4. Órdenes de Mantenimiento --}}
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('maintenance-orders.*') ? 'active fw-bold' : '' }}" href="{{ route('maintenance-orders.index') }}" title="Órdenes de Mantenimiento">
-                            <span class="nav-icon">&#128221;</span>
+                            <x-section-icon name="maintenance-orders" class="nav-icon" />
                             <span class="nav-text">Mantenimientos</span>
                         </a>
                     </li>
@@ -64,7 +64,7 @@
                     {{-- 5. Recordatorios de Vencimiento --}}
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('reminders.*') ? 'active fw-bold' : '' }}" href="{{ route('reminders.index') }}" title="Próximos Mantenimientos y Alertas">
-                            <span class="nav-icon">&#128276;</span>
+                            <x-section-icon name="reminders" class="nav-icon" />
                             <span class="nav-text">Recordatorios</span>
                         </a>
                     </li>
@@ -81,19 +81,19 @@
                 <ul class="nav flex-column mt-1">
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('company.profile.*') ? 'active fw-bold' : '' }}" href="{{ route('company.profile.edit') }}" title="Logo y Colores del Taller">
-                            <span class="nav-icon">&#127912;</span>
+                            <x-section-icon name="company-profile" class="nav-icon" />
                             <span class="nav-text">Identidad y Logo</span>
                         </a>
                     </li>
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold' : '' }}" href="{{ route('staff.index') }}" title="Personal Técnico y Mecánicos">
-                            <span class="nav-icon">&#128104;&#8205;&#128295;</span>
+                            <x-section-icon name="staff" class="nav-icon" />
                             <span class="nav-text">Personal Operativo</span>
                         </a>
                     </li>
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('subscription.status') ? 'active fw-bold' : '' }}" href="{{ route('subscription.status') }}" title="Estado de Cuenta y Suscripción">
-                            <span class="nav-icon">&#128179;</span>
+                            <x-section-icon name="company-subscriptions" class="nav-icon" />
                             <span class="nav-text">Mi Suscripción</span>
                         </a>
                     </li>
@@ -111,19 +111,19 @@
                 <ul class="nav flex-column mt-1">
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('companies.*') ? 'active fw-bold' : '' }}" href="{{ route('companies.index') }}" title="Talleres y Concesionarios">
-                            <span class="nav-icon">&#127970;</span>
+                            <x-section-icon name="companies" class="nav-icon" />
                             <span class="nav-text">Empresas y Talleres</span>
                         </a>
                     </li>
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('company-admins.*') ? 'active fw-bold' : '' }}" href="{{ route('company-admins.index') }}" title="Administradores de Empresas">
-                            <span class="nav-icon">&#128100;</span>
+                            <x-section-icon name="company-admins" class="nav-icon" />
                             <span class="nav-text">Usuarios de Empresa</span>
                         </a>
                     </li>
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold' : '' }}" href="{{ route('staff.index') }}" title="Mecánicos de todas las empresas">
-                            <span class="nav-icon">&#128104;&#8205;&#128295;</span>
+                            <x-section-icon name="staff" class="nav-icon" />
                             <span class="nav-text">Personal Operativo</span>
                         </a>
                     </li>
@@ -138,13 +138,13 @@
                 <ul class="nav flex-column mt-1">
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('subscription-plans.*') ? 'active fw-bold' : '' }}" href="{{ route('subscription-plans.index') }}" title="Catálogo de Planes SaaS">
-                            <span class="nav-icon">&#128188;</span>
+                            <x-section-icon name="subscription-plans" class="nav-icon" />
                             <span class="nav-text">Planes de Suscripción</span>
                         </a>
                     </li>
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('company-subscriptions.*') ? 'active fw-bold' : '' }}" href="{{ route('company-subscriptions.index') }}" title="Control de Vigencia y Bloqueo">
-                            <span class="nav-icon">&#128179;</span>
+                            <x-section-icon name="company-subscriptions" class="nav-icon" />
                             <span class="nav-text">Suscripciones Activas</span>
                         </a>
                     </li>
@@ -164,7 +164,7 @@
                 data-bs-target="#viewAcceptedPolicyModal"
                 title="Ver Políticas de Uso y Condiciones aceptadas"
             >
-                <span class="nav-icon fs-6 me-1">&#128220;</span>
+                <x-section-icon name="policies" class="nav-icon fs-6 me-1" />
                 <span class="nav-text" style="font-size: 0.78rem;">Políticas y Condiciones</span>
             </button>
             @if(isset($userPolicyAcceptance) && $userPolicyAcceptance)
