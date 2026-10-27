@@ -148,6 +148,12 @@
                             <span class="nav-text">Suscripciones Activas</span>
                         </a>
                     </li>
+                    <li class="nav-item mb-1">
+                        <a class="nav-link {{ request()->routeIs('client-subscriptions.*') ? 'active fw-bold' : '' }}" href="{{ route('client-subscriptions.index') }}" title="Pagos de clientes Propietarios de Flota">
+                            <x-section-icon name="company-subscriptions" class="nav-icon" />
+                            <span class="nav-text">Pagos de Clientes</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         @endif

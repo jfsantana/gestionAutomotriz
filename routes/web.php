@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ClientActivationController;
+use App\Http\Controllers\ClientSubscriptionController;
 use App\Http\Controllers\CompanyAdminController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyProfileController;
@@ -72,6 +73,12 @@ Route::middleware('auth')->group(function () {
         Route::post('company-subscriptions/{company_subscription}/renew', [CompanySubscriptionController::class, 'renew'])->name('company-subscriptions.renew');
         Route::patch('company-subscriptions/{company_subscription}/toggle-suspension', [CompanySubscriptionController::class, 'toggleSuspension'])->name('company-subscriptions.toggle-suspension');
         Route::resource('company-subscriptions', CompanySubscriptionController::class)->except(['destroy']);
+
+        // Solicitudes y confirmación de pagos de clientes finales
+        Route::get('client-subscriptions', [ClientSubscriptionController::class, 'index'])->name('client-subscriptions.index');
+        Route::patch('client-subscriptions/{customer_payment}/confirm', [ClientSubscriptionController::class, 'confirmPayment'])->name('client-subscriptions.confirm');
+        Route::delete('client-subscriptions/{customer_payment}', [ClientSubscriptionController::class, 'hideRequest'])->name('client-subscriptions.hide');
+        Route::patch('client-subscriptions/{customer_payment}/reverse', [ClientSubscriptionController::class, 'reversePayment'])->name('client-subscriptions.reverse');
     });
 
     // Módulos operativos protegidos por estado de suscripción activa de la empresa
@@ -119,6 +126,9 @@ Route::middleware('auth')->group(function () {
 
         // 2. Mis Vehículos y Baja Lógica
         Route::get('vehicles', [ClientPortalController::class, 'vehicles'])->name('vehicles.index');
+        Route::post('customers/{customer}/upgrade-to-fleet', [ClientSubscriptionController::class, 'upgradeToFleet'])
+            ->middleware('throttle:5,1')
+            ->name('customers.upgrade-to-fleet');
         Route::get('vehicles/{vehicle}', [ClientPortalController::class, 'vehicleShow'])->name('vehicles.show');
         Route::post('vehicles/{vehicle}/decommission', [ClientPortalController::class, 'decommissionVehicle'])->name('vehicles.decommission');
 

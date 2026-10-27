@@ -462,6 +462,29 @@ El administrador del taller puede consultar su estado de cuenta. Si el sistema r
 
 No hay un cobro con tarjeta ni una renovación pagada automática documentados en la aplicación actual.
 
+### Pagos de clientes Propietarios de Flota
+
+Este plan es independiente de la suscripción del taller y lo administra AutoBitácora. El cliente recibe dos meses gratuitos desde su primer inicio de sesión exitoso; durante ese periodo puede consultar hasta tres vehículos. Al finalizar, los vehículos, sus historiales y el registro de servicios quedan ocultos hasta que se confirme una suscripción. La sección **Mis Vehículos** permanece disponible para registrar la solicitud de pago.
+
+Al enviar una solicitud, se crea una fila con estado **Solicitud** en **Suscripciones SaaS → Pagos de Clientes** y se envía un correo al cliente y a cada superadministrador activo con email. El superadministrador contacta al cliente para coordinar el pago y solo confirma la solicitud en el panel cuando el pago se haya recibido. La solicitud por sí sola no cobra ni desbloquea vehículos.
+
+En **Pagos de Clientes**, la acción **Ocultar** quita del reporte las solicitudes pendientes o reemplazadas mediante borrado lógico; el registro permanece en la base de datos. Una solicitud reemplazada también se puede volver a revisar: solo se confirma si los vehículos, sus tipos y el monto todavía coinciden. Los pagos confirmados no se pueden ocultar para conservar el historial financiero.
+
+Un superadministrador puede **Revertir pago** en un pago confirmado. Esto registra quién y cuándo lo revirtió y retira el acceso de flota si ese pago corresponde a la suscripción vigente; revertir un pago antiguo no afecta una suscripción posterior. La acción no realiza un reembolso bancario automático.
+
+Para que los correos lleguen fuera del entorno local, configura un proveedor de correo válido en las variables `MAIL_MAILER` y `MAIL_*` del entorno. Si no se configura, Laravel puede registrar los mensajes en el log en vez de enviarlos.
+
+La tarifa mensual por vehículo depende del tipo de cliente y vehículo:
+
+| Tipo de vehículo | Particular | Propietario de Flota |
+|---|---:|---:|
+| Motocicleta | USD 3 | USD 3 |
+| Carro o camioneta | USD 3 | USD 4 |
+| Van o autobús | USD 4 | USD 5 |
+| Camión, chuto o maquinaria pesada | USD 5 | USD 5 |
+
+El pago anual equivale a once mensualidades y cubre doce meses. Al vencer el periodo pagado, el acceso a los vehículos y servicios vuelve a depender de la prueba gratuita; si esta también venció, ningún vehículo queda visible. Los vehículos no se eliminan y el formulario de solicitud permanece disponible.
+
 ## 14. Portal del cliente
 
 ### Activación
@@ -485,6 +508,8 @@ El enlace es de un solo uso. Si caducó o ya fue utilizado, contacta al taller. 
 | Mi Cuenta y Clave | Datos personales, contraseña y baja de cuenta. |
 
 El portal no permite acceder a los módulos administrativos del taller ni a datos de otros propietarios.
+
+Si hay vehículos ocultos, **Desbloquear Todos los vehículos** abre la página del representante de AutoBitácora. El cliente también puede registrar una solicitud mensual o anual desde **Mis Vehículos**. El plan Propietario de Flota requiere confirmación manual de pago; el precio depende del tipo de cliente y vehículo.
 
 ### Registrar un servicio propio
 

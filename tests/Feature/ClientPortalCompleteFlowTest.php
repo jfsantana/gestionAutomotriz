@@ -4,8 +4,9 @@ namespace Tests\Feature;
 
 use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
-use App\Domain\Maintenance\Models\MaintenanceOrder;
 use App\Domain\Users\Models\ClientInvitation;
+use App\Domain\Users\Models\PlatformPolicy;
+use App\Domain\Users\Models\UserPolicyAcceptance;
 use App\Domain\Vehicles\Models\Vehicle;
 use App\Mail\ClientPortalInvitationMail;
 use App\Models\User;
@@ -19,8 +20,11 @@ class ClientPortalCompleteFlowTest extends TestCase
     use RefreshDatabase;
 
     protected Company $company;
+
     protected User $adminCompany;
+
     protected Customer $customer;
+
     protected Vehicle $vehicle;
 
     protected function setUp(): void
@@ -28,7 +32,7 @@ class ClientPortalCompleteFlowTest extends TestCase
         parent::setUp();
 
         $this->seed(PlatformPolicySeeder::class);
-        $activePolicy = \App\Domain\Users\Models\PlatformPolicy::activePolicy();
+        $activePolicy = PlatformPolicy::activePolicy();
 
         $this->company = Company::create([
             'name' => 'Taller AutoService Premium',
@@ -47,7 +51,7 @@ class ClientPortalCompleteFlowTest extends TestCase
         ]);
 
         if ($activePolicy) {
-            \App\Domain\Users\Models\UserPolicyAcceptance::create([
+            UserPolicyAcceptance::create([
                 'user_id' => $this->adminCompany->id,
                 'platform_policy_id' => $activePolicy->id,
                 'policy_version' => $activePolicy->version,
@@ -60,6 +64,7 @@ class ClientPortalCompleteFlowTest extends TestCase
             'full_name' => 'Juan Propietario',
             'email' => 'juan.propietario@gmail.com',
             'phone' => '809-555-7788',
+            'fleet_trial_started_at' => now(),
         ]);
 
         $this->vehicle = Vehicle::create([
@@ -106,6 +111,8 @@ class ClientPortalCompleteFlowTest extends TestCase
      */
     public function test_customer_can_activate_account_via_token(): void
     {
+        $this->customer->update(['fleet_trial_started_at' => null]);
+
         $user = User::create([
             'name' => 'Juan Propietario',
             'username' => 'juan_prop',
@@ -146,6 +153,7 @@ class ClientPortalCompleteFlowTest extends TestCase
         $this->assertEquals('ACTIVE', $user->fresh()->account_status);
         $this->assertTrue($user->fresh()->is_active);
         $this->assertNotNull($user->fresh()->activated_at);
+        $this->assertNotNull($this->customer->fresh()->fleet_trial_started_at);
     }
 
     /**
@@ -165,9 +173,9 @@ class ClientPortalCompleteFlowTest extends TestCase
             'account_status' => 'ACTIVE',
         ]);
 
-        $activePolicy = \App\Domain\Users\Models\PlatformPolicy::activePolicy();
+        $activePolicy = PlatformPolicy::activePolicy();
         if ($activePolicy) {
-            \App\Domain\Users\Models\UserPolicyAcceptance::create([
+            UserPolicyAcceptance::create([
                 'user_id' => $user->id,
                 'platform_policy_id' => $activePolicy->id,
                 'policy_version' => $activePolicy->version,
@@ -217,9 +225,9 @@ class ClientPortalCompleteFlowTest extends TestCase
             'account_status' => 'ACTIVE',
         ]);
 
-        $activePolicy = \App\Domain\Users\Models\PlatformPolicy::activePolicy();
+        $activePolicy = PlatformPolicy::activePolicy();
         if ($activePolicy) {
-            \App\Domain\Users\Models\UserPolicyAcceptance::create([
+            UserPolicyAcceptance::create([
                 'user_id' => $user->id,
                 'platform_policy_id' => $activePolicy->id,
                 'policy_version' => $activePolicy->version,
@@ -235,6 +243,108 @@ class ClientPortalCompleteFlowTest extends TestCase
 
         $responseCompanies = $this->actingAs($user)->get('/companies');
         $responseCompanies->assertStatus(403);
+    }
+
+    public function test_non_premium_customer_sees_only_three_vehicles_and_hidden_count(): void
+    {
+        $user = $this->createPortalCustomerUser();
+        $this->createAdditionalVehicles(4);
+
+        $response = $this->actingAs($user)->get(route('portal.vehicles.index'));
+
+        $response->assertOk()
+            ->assertViewHas('vehicles', fn ($vehicles): bool => $vehicles->count() === 3)
+            ->assertViewHas('hidden_vehicles_count', 2)
+            ->assertSee('PORTAL4')
+            ->assertDontSee('A123999')
+            ->assertSee('Tienes 2 vehículos adicionales registrados por el taller.')
+            ->assertSee('Actualiza al plan Propietario de Flota para gestionar toda tu plantilla.')
+            ->assertSee('Desbloquear Todos los vehículos')
+            ->assertSee('href="https://nfcvzla.venecode.com/jsantana/"', false);
+        $this->assertSame(5, $this->customer->vehicles()->count());
+    }
+
+    public function test_customer_cannot_open_a_vehicle_outside_the_three_visible_during_trial(): void
+    {
+        $user = $this->createPortalCustomerUser();
+        $this->createAdditionalVehicles(3);
+
+        $this->actingAs($user)
+            ->get(route('portal.vehicles.show', $this->vehicle))
+            ->assertNotFound();
+    }
+
+    public function test_premium_customer_sees_all_vehicles_without_hidden_vehicles(): void
+    {
+        $this->customer->update(['is_fleet_premium' => true]);
+        $user = $this->createPortalCustomerUser();
+        $this->createAdditionalVehicles(4);
+
+        $response = $this->actingAs($user)->get(route('portal.vehicles.index'));
+
+        $response->assertOk()
+            ->assertViewHas('vehicles', fn ($vehicles): bool => $vehicles->count() === 5)
+            ->assertViewHas('hidden_vehicles_count', 0)
+            ->assertDontSee('Desbloquear Todos los vehículos')
+            ->assertDontSee('Vehículos adicionales bloqueados');
+    }
+
+    public function test_expired_premium_customer_sees_only_three_vehicles_and_the_upgrade_card(): void
+    {
+        $this->customer->update([
+            'is_fleet_premium' => true,
+            'vehicle_limit' => null,
+            'fleet_expires_at' => now()->subMinute(),
+        ]);
+        $user = $this->createPortalCustomerUser();
+        $this->createAdditionalVehicles(4);
+
+        $response = $this->actingAs($user)->get(route('portal.vehicles.index'));
+
+        $response->assertOk()
+            ->assertViewHas('vehicles', fn ($vehicles): bool => $vehicles->count() === 3)
+            ->assertViewHas('hidden_vehicles_count', 2)
+            ->assertSee('Tienes 2 vehículos adicionales registrados por el taller.')
+            ->assertSee('Desbloquear Todos los vehículos');
+    }
+
+    public function test_customer_with_expired_trial_sees_no_vehicles_but_can_still_request_access(): void
+    {
+        $user = $this->createPortalCustomerUser();
+        $this->customer->update(['fleet_trial_started_at' => now()->subMonths(2)->subMinute()]);
+
+        $response = $this->actingAs($user)->get(route('portal.vehicles.index'));
+
+        $response->assertOk()
+            ->assertViewHas('vehicles', fn ($vehicles): bool => $vehicles->isEmpty())
+            ->assertViewHas('hidden_vehicles_count', 1)
+            ->assertSee('Tu período gratuito terminó.')
+            ->assertSee('Registrar solicitud de pago')
+            ->assertSee('habilitar al suscribirte');
+    }
+
+    public function test_customer_with_expired_trial_cannot_open_vehicle_or_maintenance_pages(): void
+    {
+        $user = $this->createPortalCustomerUser();
+        $this->customer->update(['fleet_trial_started_at' => now()->subMonths(2)->subMinute()]);
+
+        $this->actingAs($user)
+            ->get(route('portal.dashboard'))
+            ->assertRedirect(route('portal.vehicles.index'));
+        $this->get(route('portal.vehicles.show', $this->vehicle))
+            ->assertRedirect(route('portal.vehicles.index'));
+        $this->get(route('portal.maintenance.index'))
+            ->assertRedirect(route('portal.vehicles.index'));
+        $this->get(route('portal.maintenance.create'))
+            ->assertRedirect(route('portal.vehicles.index'));
+        $this->post(route('portal.maintenance.store'), [
+            'vehicle_id' => $this->vehicle->id,
+            'service_name_snapshot' => 'Cambio de aceite',
+            'maintenance_type' => 'preventive',
+            'service_date' => now()->toDateString(),
+            'current_mileage' => 100,
+        ])->assertRedirect(route('portal.vehicles.index'));
+        $this->assertDatabaseCount('maintenance_orders', 0);
     }
 
     /**
@@ -254,9 +364,9 @@ class ClientPortalCompleteFlowTest extends TestCase
             'account_status' => 'ACTIVE',
         ]);
 
-        $activePolicy = \App\Domain\Users\Models\PlatformPolicy::activePolicy();
+        $activePolicy = PlatformPolicy::activePolicy();
         if ($activePolicy) {
-            \App\Domain\Users\Models\UserPolicyAcceptance::create([
+            UserPolicyAcceptance::create([
                 'user_id' => $user->id,
                 'platform_policy_id' => $activePolicy->id,
                 'policy_version' => $activePolicy->version,
@@ -269,5 +379,46 @@ class ClientPortalCompleteFlowTest extends TestCase
         $response->assertRedirect(route('portal.vehicles.index'));
         $this->assertEquals('DECOMMISSIONED', $this->vehicle->fresh()->customer_status);
         $this->assertSoftDeleted('vehicles', ['id' => $this->vehicle->id]);
+    }
+
+    private function createPortalCustomerUser(): User
+    {
+        $this->customer->update(['fleet_trial_started_at' => now()]);
+
+        $user = User::create([
+            'name' => 'Juan Propietario',
+            'username' => 'juan_prop',
+            'email' => 'juan.propietario@gmail.com',
+            'password' => 'secret',
+            'role' => 'customer',
+            'company_id' => $this->company->id,
+            'customer_id' => $this->customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+
+        $activePolicy = PlatformPolicy::activePolicy();
+        if ($activePolicy) {
+            UserPolicyAcceptance::create([
+                'user_id' => $user->id,
+                'platform_policy_id' => $activePolicy->id,
+                'policy_version' => $activePolicy->version,
+                'accepted_at' => now(),
+            ]);
+        }
+
+        return $user;
+    }
+
+    private function createAdditionalVehicles(int $count): void
+    {
+        for ($index = 1; $index <= $count; $index++) {
+            Vehicle::create([
+                'customer_id' => $this->customer->id,
+                'plate' => "PORTAL{$index}",
+                'make' => 'Toyota',
+                'model' => 'Corolla',
+            ]);
+        }
     }
 }

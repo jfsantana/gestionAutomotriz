@@ -66,6 +66,7 @@ class ClientActivationController extends Controller
         $invitation->update(['used_at' => now()]);
 
         Auth::login($user);
+        $user->customer?->startFleetTrialIfNeeded();
 
         return redirect()->route('portal.dashboard')->with('success', '¡Bienvenido a AutoBitacora! Tu cuenta ha sido activada correctamente.');
     }

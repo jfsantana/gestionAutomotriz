@@ -14,6 +14,7 @@
         'company-admins', 'account' => "\u{1F464}",
         'subscription-plans' => "\u{1F4BC}",
         'company-subscriptions' => "\u{1F4B3}",
+        'client-subscriptions' => "\u{1F4B3}",
         'policies' => "\u{1F4DC}",
         'personal-maintenance' => "\u{2795}",
     };

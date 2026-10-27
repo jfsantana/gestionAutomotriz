@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Portal;
 
+use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
 use App\Domain\Vehicles\Models\Vehicle;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\MaintenanceReminderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -20,12 +23,20 @@ class ClientPortalController extends Controller
     /**
      * 1. Panel de Inicio del Cliente: Resumen, alertas y últimos mantenimientos.
      */
-    public function dashboard(Request $request): View
+    public function dashboard(Request $request): View|RedirectResponse
     {
         $customer = $request->user()->customer;
         abort_unless($customer, 404, 'No se encontró la ficha del cliente asociada a tu cuenta.');
+        $accessRedirect = $this->redirectIfFleetAccessExpired($customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
 
-        $vehicles = $customer->vehicles()->withCount('maintenanceOrders')->get();
+        $vehicleQuery = $customer->vehicles()->withCount('maintenanceOrders')->latest('id');
+        if (! $customer->isFleetPremiumActive()) {
+            $vehicleQuery->limit(3);
+        }
+        $vehicles = $vehicleQuery->get();
 
         // Próximos mantenimientos para sus vehículos
         $upcomingReminders = [];
@@ -42,6 +53,7 @@ class ClientPortalController extends Controller
         // Últimos 5 mantenimientos de sus vehículos
         $recentOrders = MaintenanceOrder::where('customer_id', $customer->id)
             ->withConsistentOwnership()
+            ->whereIn('vehicle_id', $vehicles->pluck('id'))
             ->with(['vehicle'])
             ->latest('service_date')
             ->take(5)
@@ -55,17 +67,43 @@ class ClientPortalController extends Controller
      */
     public function vehicles(Request $request): View
     {
-        $customer = $request->user()->customer;
-        $vehicles = $customer->vehicles()->withCount('maintenanceOrders')->latest('id')->get();
+        $user = $request->user();
+        $customer = $user->customer;
+        abort_unless($customer, 404, 'No se encontró la ficha del cliente asociada a tu cuenta.');
 
-        return view('portal.vehicles.index', compact('customer', 'vehicles'));
+        $vehicleQuery = $customer->vehicles()
+            ->withCount('maintenanceOrders')
+            ->latest('id');
+        $totalVehiclesCount = $customer->vehicles()->count();
+
+        if ($user->role === 'customer' && ! $customer->isFleetPremiumActive()) {
+            $vehicleQuery->limit($customer->hasFleetTrialActive() ? 3 : 0);
+        }
+
+        $vehicles = $vehicleQuery->get();
+        $hidden_vehicles_count = max(0, $totalVehiclesCount - $vehicles->count());
+        $fleetPayment = $hidden_vehicles_count > 0
+            ? $customer->payments()->first()
+            : null;
+
+        return view('portal.vehicles.index', compact(
+            'customer',
+            'vehicles',
+            'hidden_vehicles_count',
+            'fleetPayment',
+        ));
     }
 
     /**
      * Detalle de un vehículo propio con su historial.
      */
-    public function vehicleShow(Request $request, Vehicle $vehicle): View
+    public function vehicleShow(Request $request, Vehicle $vehicle): View|RedirectResponse
     {
+        $accessRedirect = $this->redirectIfFleetAccessExpired($request->user()->customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
         $this->authorizeCustomerVehicle($request->user(), $vehicle);
 
         $vehicle->load(['maintenanceOrders' => fn ($q) => $q->latest('service_date')]);
@@ -79,6 +117,11 @@ class ClientPortalController extends Controller
      */
     public function decommissionVehicle(Request $request, Vehicle $vehicle): RedirectResponse
     {
+        $accessRedirect = $this->redirectIfFleetAccessExpired($request->user()->customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
         $this->authorizeCustomerVehicle($request->user(), $vehicle);
 
         $plate = $vehicle->plate;
@@ -97,13 +140,19 @@ class ClientPortalController extends Controller
     /**
      * 3. Historial de Mantenimiento: Separando órdenes de taller de registros personales.
      */
-    public function maintenanceHistory(Request $request): View
+    public function maintenanceHistory(Request $request): View|RedirectResponse
     {
         $customer = $request->user()->customer;
+        $accessRedirect = $this->redirectIfFleetAccessExpired($customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
         $tab = $request->input('tab', 'all'); // all, workshop, personal
 
         $query = MaintenanceOrder::where('customer_id', $customer->id)
             ->withConsistentOwnership()
+            ->whereIn('vehicle_id', $this->visibleVehicleIds($customer))
             ->with(['vehicle', 'service']);
 
         if ($tab === 'workshop') {
@@ -120,10 +169,17 @@ class ClientPortalController extends Controller
     /**
      * 4. Registrar Mantenimiento Propio / Personal.
      */
-    public function createPersonalMaintenance(Request $request): View
+    public function createPersonalMaintenance(Request $request): View|RedirectResponse
     {
         $customer = $request->user()->customer;
-        $vehicles = $customer->vehicles()->get(['id', 'plate', 'make', 'model', 'current_mileage']);
+        $accessRedirect = $this->redirectIfFleetAccessExpired($customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
+        $vehicles = $customer->vehicles()
+            ->whereIn('id', $this->visibleVehicleIds($customer))
+            ->get(['id', 'plate', 'make', 'model', 'current_mileage']);
 
         return view('portal.maintenance.create_personal', compact('customer', 'vehicles'));
     }
@@ -131,6 +187,10 @@ class ClientPortalController extends Controller
     public function storePersonalMaintenance(Request $request): RedirectResponse
     {
         $customer = $request->user()->customer;
+        $accessRedirect = $this->redirectIfFleetAccessExpired($customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
 
         $data = $request->validate([
             'vehicle_id' => ['required', 'integer'],
@@ -233,10 +293,43 @@ class ClientPortalController extends Controller
         return redirect()->route('login')->with('info', 'Tu cuenta ha sido dada de baja del sistema.');
     }
 
-    protected function authorizeCustomerVehicle($user, Vehicle $vehicle): void
+    protected function authorizeCustomerVehicle(User $user, Vehicle $vehicle): void
     {
         if ((int) $vehicle->customer_id !== (int) $user->customer_id) {
             abort(403, 'No tienes autorización para consultar este vehículo.');
         }
+
+        $customer = $user->customer;
+        if (
+            ! $customer->isFleetPremiumActive()
+            && $customer->hasFleetTrialActive()
+            && ! $this->visibleVehicleIds($customer)->contains((int) $vehicle->id)
+        ) {
+            abort(404);
+        }
+    }
+
+    /**
+     * @return Collection<int, int>
+     */
+    private function visibleVehicleIds(Customer $customer): Collection
+    {
+        $query = $customer->vehicles()->latest('id');
+        if (! $customer->isFleetPremiumActive()) {
+            $query->limit(3);
+        }
+
+        return $query->pluck('id');
+    }
+
+    private function redirectIfFleetAccessExpired(?Customer $customer): ?RedirectResponse
+    {
+        if ($customer && ! $customer->hasFleetPortalAccess()) {
+            return redirect()
+                ->route('portal.vehicles.index')
+                ->with('info', 'Tu período gratuito de dos meses terminó. Registra una solicitud de pago para recuperar el acceso a tus vehículos, historiales y servicios.');
+        }
+
+        return null;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Companies\Models;
 
+use App\Domain\Billing\Models\CustomerPayment;
 use App\Domain\Vehicles\Models\Vehicle;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +24,18 @@ class Customer extends Model
     protected $table = 'customers';
 
     /**
+     * Default values available before the model is persisted.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_fleet_premium' => false,
+        'vehicle_limit' => 3,
+        'fleet_expires_at' => null,
+        'fleet_trial_started_at' => null,
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -35,6 +48,10 @@ class Customer extends Model
         'document_type',
         'document_number',
         'customer_type',
+        'is_fleet_premium',
+        'vehicle_limit',
+        'fleet_expires_at',
+        'fleet_trial_started_at',
         'notes',
     ];
 
@@ -49,6 +66,10 @@ class Customer extends Model
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'is_fleet_premium' => 'boolean',
+            'vehicle_limit' => 'integer',
+            'fleet_expires_at' => 'datetime',
+            'fleet_trial_started_at' => 'datetime',
         ];
     }
 
@@ -74,6 +95,49 @@ class Customer extends Model
     public function allVehicles(): HasMany
     {
         return $this->hasMany(Vehicle::class, 'customer_id')->withConsistentOwnership();
+    }
+
+    public function hasReachedVehicleLimit(): bool
+    {
+        if ($this->isFleetPremiumActive() && $this->vehicle_limit === null) {
+            return false;
+        }
+
+        return $this->vehicles()->count() > ($this->vehicle_limit ?? 3);
+    }
+
+    public function hasFleetTrialActive(): bool
+    {
+        return $this->fleet_trial_started_at !== null
+            && now()->isBefore($this->fleet_trial_started_at->copy()->addMonths(2));
+    }
+
+    public function isFleetPremiumActive(): bool
+    {
+        return $this->is_fleet_premium
+            && (! $this->fleet_expires_at || $this->fleet_expires_at->isFuture());
+    }
+
+    public function hasFleetPortalAccess(): bool
+    {
+        return $this->isFleetPremiumActive() || $this->hasFleetTrialActive();
+    }
+
+    public function startFleetTrialIfNeeded(): void
+    {
+        if ($this->fleet_trial_started_at === null) {
+            static::query()
+                ->whereKey($this->getKey())
+                ->whereNull('fleet_trial_started_at')
+                ->update(['fleet_trial_started_at' => now()]);
+
+            $this->refresh();
+        }
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(CustomerPayment::class, 'customer_id')->latest('id');
     }
 
     /**

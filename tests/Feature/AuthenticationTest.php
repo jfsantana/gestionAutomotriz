@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Companies\Models\Company;
+use App\Domain\Companies\Models\Customer;
 use App\Models\User;
 use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,6 +68,62 @@ class AuthenticationTest extends TestCase
         $response->assertSessionMissing('url.intended');
         $this->assertNotNull($user->fresh()->last_login_at);
         $this->get(route('company.dashboard'))->assertOk()->assertViewIs('dashboard.company');
+    }
+
+    public function test_customer_first_successful_login_starts_the_two_month_trial(): void
+    {
+        $company = Company::create([
+            'name' => 'Taller portal cliente',
+            'slug' => 'taller-portal-cliente',
+            'status' => 'active',
+        ]);
+        $customer = Customer::create([
+            'company_id' => $company->id,
+            'full_name' => 'Cliente de prueba',
+        ]);
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'company_id' => $company->id,
+            'customer_id' => $customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+
+        $response = $this->post('/login', [
+            'username' => $user->username,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('portal.dashboard'));
+        $this->assertNotNull($customer->fresh()->fleet_trial_started_at);
+    }
+
+    public function test_failed_customer_login_does_not_start_the_trial(): void
+    {
+        $company = Company::create([
+            'name' => 'Taller portal sin acceso',
+            'slug' => 'taller-portal-sin-acceso',
+            'status' => 'active',
+        ]);
+        $customer = Customer::create([
+            'company_id' => $company->id,
+            'full_name' => 'Cliente sin acceso',
+        ]);
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'company_id' => $company->id,
+            'customer_id' => $customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+
+        $this->post('/login', [
+            'username' => $user->username,
+            'password' => 'incorrect-password',
+        ])->assertSessionHasErrors('username');
+
+        $this->assertNull($customer->fresh()->fleet_trial_started_at);
     }
 
     /**

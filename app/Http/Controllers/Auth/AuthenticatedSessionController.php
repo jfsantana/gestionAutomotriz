@@ -77,6 +77,8 @@ class AuthenticatedSessionController extends Controller
 
         // Redirigir según el rol
         if ($user->role === 'customer') {
+            $user->customer?->startFleetTrialIfNeeded();
+
             return redirect()->intended(route('portal.dashboard'));
         }
 

@@ -14,3 +14,7 @@ Schedule::command('maintenance:send-reminders')
     ->timezone(MaintenanceReminderNotificationService::TIMEZONE)
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/maintenance-reminders.log'));
+
+Schedule::command('fleet-subscriptions:process-expired')
+    ->dailyAt('00:05')
+    ->withoutOverlapping();
