@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Billing\Models\CompanyPaymentRequest;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -21,7 +22,25 @@ class CompanySubscriptionStatusController extends Controller
 
         $subscription = $company->currentSubscription;
         $isOperable = $subscription && $subscription->isOperable();
+        $isInGracePeriod = $subscription?->isInGracePeriod() ?? false;
+        $pendingPaymentRequest = CompanyPaymentRequest::query()
+            ->where('company_id', $company->id)
+            ->where('status', 'requested')
+            ->latest('id')
+            ->first();
+        $canRequestPayment = $currentUser->role === 'company_admin'
+            && $subscription
+            && ! in_array($subscription->status, ['suspended', 'cancelled'], true)
+            && $subscription->plan
+            && ((float) $subscription->plan->monthly_price > 0 || (float) $subscription->plan->yearly_price > 0);
 
-        return view('company_subscriptions.status', compact('company', 'subscription', 'isOperable'));
+        return view('company_subscriptions.status', compact(
+            'company',
+            'subscription',
+            'isOperable',
+            'isInGracePeriod',
+            'pendingPaymentRequest',
+            'canRequestPayment',
+        ));
     }
 }

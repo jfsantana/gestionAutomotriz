@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Billing\Models\CompanyPaymentRequest;
 use App\Domain\Billing\Models\CustomerPayment;
 use App\Domain\Companies\Models\Customer;
 use App\Mail\ClientFleetPaymentRequestedMail;
@@ -26,9 +27,13 @@ class ClientSubscriptionController extends Controller
         $payments = CustomerPayment::query()
             ->with(['customer.user', 'confirmer', 'reverser'])
             ->latest('id')
-            ->paginate(20);
+            ->paginate(20, ['*'], 'customer_page');
+        $companyPayments = CompanyPaymentRequest::query()
+            ->with(['company', 'plan', 'requester', 'confirmer'])
+            ->latest('id')
+            ->paginate(20, ['*'], 'company_page');
 
-        return view('client_subscriptions.index', compact('payments'));
+        return view('client_subscriptions.index', compact('payments', 'companyPayments'));
     }
 
     public function upgradeToFleet(Request $request, Customer $customer): RedirectResponse

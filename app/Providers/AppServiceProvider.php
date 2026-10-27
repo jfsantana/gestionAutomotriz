@@ -36,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['layouts.app', 'components.sidebar'], function ($view) {
             $policy = PlatformPolicy::activePolicy();
             $acceptance = null;
+            $globalCompanySubscription = null;
+            $globalCompanyCanOperate = false;
 
             if (auth()->check() && $policy) {
                 $acceptance = UserPolicyAcceptance::where('user_id', auth()->id())
@@ -43,8 +45,18 @@ class AppServiceProvider extends ServiceProvider
                     ->first();
             }
 
+            $user = auth()->user();
+            if ($user && in_array($user->role, ['company_admin', 'mechanic'], true) && $user->company) {
+                $globalCompanySubscription = $user->company->currentSubscription;
+                $globalCompanyCanOperate = $globalCompanySubscription
+                    ? $globalCompanySubscription->isOperable()
+                    : false;
+            }
+
             $view->with('currentPlatformPolicy', $policy);
             $view->with('userPolicyAcceptance', $acceptance);
+            $view->with('globalCompanySubscription', $globalCompanySubscription);
+            $view->with('globalCompanyCanOperate', $globalCompanyCanOperate);
         });
     }
 }

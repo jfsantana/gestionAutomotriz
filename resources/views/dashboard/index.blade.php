@@ -61,29 +61,6 @@
     </div>
 </div>
 
-<!-- Alerta de Suscripción para Company Admin -->
-@if(isset($companySubscription) && $companySubscription)
-    @php
-        $daysSub = $companySubscription->daysRemaining();
-        $isSubOperable = $companySubscription->isOperable();
-    @endphp
-    @if(! $isSubOperable)
-        <div class="alert alert-danger shadow-sm border-0 d-flex justify-content-between align-items-center mb-4 p-3">
-            <div>
-                <strong>&#9888; Suscripción Inactiva o Vencida:</strong> Tu cuenta se encuentra en estado <strong>{{ strtoupper($companySubscription->status) }}</strong>. Los módulos operativos están restringidos.
-            </div>
-            <a href="{{ route('subscription.status') }}" class="btn btn-sm btn-danger fw-semibold">Ver Estado de Cuenta</a>
-        </div>
-    @elseif($daysSub !== null && $daysSub <= 7)
-        <div class="alert alert-warning shadow-sm border-0 d-flex justify-content-between align-items-center mb-4 p-3">
-            <div>
-                <strong>Aviso de Vencimiento:</strong> Tu suscripción a <strong>{{ $companySubscription->plan?->name }}</strong> vence en <strong>{{ $daysSub }} día(s)</strong> ({{ $companySubscription->ends_at?->format('d/m/Y') }}).
-            </div>
-            <a href="{{ route('subscription.status') }}" class="btn btn-sm btn-warning text-dark fw-semibold">Renovar</a>
-        </div>
-    @endif
-@endif
-
 <!-- Resumen Global de Suscripciones (Exclusivo Superadmin) -->
 @if(isset($subscriptionSummary) && $subscriptionSummary)
 <div class="row g-3 mb-4">

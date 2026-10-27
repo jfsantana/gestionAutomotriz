@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Domain\Billing\Models\CompanySubscription;
 use App\Domain\Billing\Models\SubscriptionPlan;
 use App\Domain\Companies\Models\Company;
+use App\Domain\Companies\Models\Customer;
 use App\Http\Requests\CompanySubscriptions\StoreCompanySubscriptionRequest;
 use App\Http\Requests\CompanySubscriptions\UpdateCompanySubscriptionRequest;
 use App\Services\SubscriptionService;
-use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -25,8 +25,17 @@ class CompanySubscriptionController extends Controller
             ->with(['currentSubscription.plan'])
             ->latest('id')
             ->paginate(10);
+        $fleetCustomers = Customer::query()
+            ->where('is_fleet_premium', true)
+            ->where(function ($query): void {
+                $query->whereNull('fleet_expires_at')
+                    ->orWhere('fleet_expires_at', '>', now());
+            })
+            ->with(['user', 'company'])
+            ->latest('id')
+            ->paginate(10, ['*'], 'fleet_page');
 
-        return view('company_subscriptions.index', compact('companies'));
+        return view('company_subscriptions.index', compact('companies', 'fleetCustomers'));
     }
 
     public function create(Request $request): View
@@ -57,7 +66,7 @@ class CompanySubscriptionController extends Controller
 
         return redirect()
             ->route('company-subscriptions.index')
-            ->with('success', "Suscripción asignada exitosamente a la empresa.");
+            ->with('success', 'Suscripción asignada exitosamente a la empresa.');
     }
 
     public function edit(CompanySubscription $company_subscription): View
@@ -81,7 +90,7 @@ class CompanySubscriptionController extends Controller
 
         return redirect()
             ->route('company-subscriptions.index')
-            ->with('success', "Suscripción de la empresa actualizada.");
+            ->with('success', 'Suscripción de la empresa actualizada.');
     }
 
     public function renew(Request $request, CompanySubscription $company_subscription): RedirectResponse

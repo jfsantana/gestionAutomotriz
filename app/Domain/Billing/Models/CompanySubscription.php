@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class CompanySubscription extends Model
 {
@@ -72,16 +73,38 @@ class CompanySubscription extends Model
      */
     public function isOperable(): bool
     {
+        if ($this->status === 'expired') {
+            return $this->isInGracePeriod();
+        }
+
         if (! in_array($this->status, ['trial', 'active'], true)) {
             return false;
         }
 
-        // Si tiene fecha de vencimiento y ya pasó
-        if ($this->ends_at && $this->ends_at->isPast()) {
+        if (! $this->ends_at) {
+            return true;
+        }
+
+        return $this->ends_at->isToday()
+            || $this->ends_at->isFuture()
+            || $this->isInGracePeriod();
+    }
+
+    public function isInGracePeriod(): bool
+    {
+        if (! in_array($this->status, ['trial', 'active', 'expired'], true) || ! $this->ends_at) {
             return false;
         }
 
-        return true;
+        $graceEndsAt = $this->ends_at->copy()->endOfDay()->addDays(3);
+
+        return now()->greaterThan($this->ends_at->copy()->endOfDay())
+            && now()->lessThanOrEqualTo($graceEndsAt);
+    }
+
+    public function graceEndsAt(): ?Carbon
+    {
+        return $this->ends_at?->copy()->endOfDay()->addDays(3);
     }
 
     /**

@@ -27,12 +27,8 @@ class EnsureCompanySubscriptionIsActive
 
         $subscription = $user->company->currentSubscription;
 
-        // 3. Si no tiene suscripción registrada explícita pero el status de la empresa es active o trial
+        // Una empresa sin una suscripción asignada no tiene acceso operativo.
         if (! $subscription) {
-            if (in_array($user->company->status, ['active', 'trial'], true)) {
-                return $next($request);
-            }
-
             return redirect()->route('subscription.status');
         }
 

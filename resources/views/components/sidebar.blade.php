@@ -17,7 +17,7 @@
         </div>
 
         {{-- SECCIÓN 2: OPERACIONES DEL TALLER (Secuencial: Clientes -> Vehículos -> Catálogo Servicios -> Mantenimientos -> Recordatorios) --}}
-        @if(auth()->check() && in_array(auth()->user()->role, ['super_admin', 'company_admin', 'mechanic'], true))
+        @if(auth()->check() && in_array(auth()->user()->role, ['super_admin', 'company_admin', 'mechanic'], true) && (auth()->user()->role === 'super_admin' || $globalCompanyCanOperate))
             <div class="sidebar-section mb-3">
                 <div class="sidebar-heading px-2 text-muted text-uppercase fw-bold">
                     <span class="nav-text">Operaciones de Taller</span>
@@ -79,18 +79,20 @@
                     <span class="nav-text">Mi Taller</span>
                 </div>
                 <ul class="nav flex-column mt-1">
-                    <li class="nav-item mb-1">
-                        <a class="nav-link {{ request()->routeIs('company.profile.*') ? 'active fw-bold' : '' }}" href="{{ route('company.profile.edit') }}" title="Logo y Colores del Taller">
-                            <x-section-icon name="company-profile" class="nav-icon" />
-                            <span class="nav-text">Identidad y Logo</span>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-1">
-                        <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold' : '' }}" href="{{ route('staff.index') }}" title="Personal Técnico y Mecánicos">
-                            <x-section-icon name="staff" class="nav-icon" />
-                            <span class="nav-text">Personal Operativo</span>
-                        </a>
-                    </li>
+                    @if($globalCompanyCanOperate)
+                        <li class="nav-item mb-1">
+                            <a class="nav-link {{ request()->routeIs('company.profile.*') ? 'active fw-bold' : '' }}" href="{{ route('company.profile.edit') }}" title="Logo y Colores del Taller">
+                                <x-section-icon name="company-profile" class="nav-icon" />
+                                <span class="nav-text">Identidad y Logo</span>
+                            </a>
+                        </li>
+                        <li class="nav-item mb-1">
+                            <a class="nav-link {{ request()->routeIs('staff.*') ? 'active fw-bold' : '' }}" href="{{ route('staff.index') }}" title="Personal Técnico y Mecánicos">
+                                <x-section-icon name="staff" class="nav-icon" />
+                                <span class="nav-text">Personal Operativo</span>
+                            </a>
+                        </li>
+                    @endif
                     <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('subscription.status') ? 'active fw-bold' : '' }}" href="{{ route('subscription.status') }}" title="Estado de Cuenta y Suscripción">
                             <x-section-icon name="company-subscriptions" class="nav-icon" />
@@ -149,9 +151,9 @@
                         </a>
                     </li>
                     <li class="nav-item mb-1">
-                        <a class="nav-link {{ request()->routeIs('client-subscriptions.*') ? 'active fw-bold' : '' }}" href="{{ route('client-subscriptions.index') }}" title="Pagos de clientes Propietarios de Flota">
+                        <a class="nav-link {{ request()->routeIs('client-subscriptions.*') ? 'active fw-bold' : '' }}" href="{{ route('client-subscriptions.index') }}" title="Solicitudes y pagos de clientes y talleres">
                             <x-section-icon name="company-subscriptions" class="nav-icon" />
-                            <span class="nav-text">Pagos de Clientes</span>
+                            <span class="nav-text">Pagos de Clientes y Talleres</span>
                         </a>
                     </li>
                 </ul>

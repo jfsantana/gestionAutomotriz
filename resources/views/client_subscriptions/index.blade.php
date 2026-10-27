@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Pagos de Clientes')
+@section('title', 'Pagos y Solicitudes')
 
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-2 pb-2 mb-4 border-bottom">
     <div>
-        <x-page-heading section="client-subscriptions" class="h3 mb-0">Pagos de Clientes</x-page-heading>
-        <p class="text-muted mb-0 small">Solicitudes de suscripción Propietario de Flota para contactar al cliente y confirmar manualmente el pago.</p>
+        <x-page-heading section="client-subscriptions" class="h3 mb-0">Pagos de Clientes y Talleres</x-page-heading>
+        <p class="text-muted mb-0 small">Solicitudes de pago de clientes finales y renovaciones de talleres/concesionarios. Confirma manualmente solo después de recibir el pago.</p>
     </div>
 </div>
 
@@ -23,8 +23,11 @@
     </div>
 @endif
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0 mb-4">
     <div class="card-body p-0">
+        <div class="p-3 border-bottom">
+            <h2 class="h5 mb-0">Clientes finales</h2>
+        </div>
         @if($payments->isEmpty())
             <div class="text-center py-5">
                 <p class="text-muted mb-0">No hay solicitudes de pago registradas.</p>
@@ -34,6 +37,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
+                            <th>Tipo</th>
                             <th>Cliente</th>
                             <th>Vehículos y tarifa</th>
                             <th>Periodo</th>
@@ -46,6 +50,7 @@
                     <tbody>
                         @foreach($payments as $payment)
                             <tr>
+                                <td><span class="badge bg-info text-dark">Cliente</span></td>
                                 <td>
                                     <strong>{{ $payment->customer?->full_name ?? 'Cliente eliminado' }}</strong>
                                     <small class="d-block text-muted">{{ $payment->customer_type === 'fleet_owner' ? 'Propietario de Flota' : 'Particular' }}</small>
@@ -112,6 +117,91 @@
             </div>
             <div class="p-3">
                 {{ $payments->links() }}
+            </div>
+        @endif
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="p-3 border-bottom">
+            <h2 class="h5 mb-0">Talleres y concesionarios</h2>
+            <small class="text-muted">El monto se calcula a partir del plan asignado a cada empresa.</small>
+        </div>
+        @if($companyPayments->isEmpty())
+            <div class="text-center py-5">
+                <p class="text-muted mb-0">No hay solicitudes de renovación de talleres registradas.</p>
+            </div>
+        @else
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Empresa</th>
+                            <th>Plan</th>
+                            <th>Periodicidad</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th class="text-end">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($companyPayments as $paymentRequest)
+                            <tr>
+                                <td><span class="badge bg-primary">Taller/Concesionario</span></td>
+                                <td>
+                                    <strong>{{ $paymentRequest->company?->name ?? 'Empresa eliminada' }}</strong>
+                                    <small class="d-block text-muted">{{ $paymentRequest->requester?->email ?? 'Sin correo registrado' }}</small>
+                                </td>
+                                <td>{{ $paymentRequest->plan?->name ?? 'Plan eliminado' }}</td>
+                                <td>{{ $paymentRequest->billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}</td>
+                                <td><strong>{{ $paymentRequest->currency }} {{ $paymentRequest->amount }}</strong></td>
+                                <td>
+                                    @if($paymentRequest->status === 'requested')
+                                        <span class="badge bg-warning text-dark">Solicitud</span>
+                                    @elseif($paymentRequest->status === 'paid')
+                                        <span class="badge bg-success">Pagado</span>
+                                    @else
+                                        <span class="badge bg-secondary">Reemplazado</span>
+                                    @endif
+                                    @if($paymentRequest->confirmer)
+                                        <small class="d-block text-muted">Confirmó: {{ $paymentRequest->confirmer->name }}</small>
+                                    @endif
+                                </td>
+                                <td>{{ $paymentRequest->created_at->format('d/m/Y H:i') }}</td>
+                                <td class="text-end">
+                                    @if($paymentRequest->status === 'requested')
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <form method="POST" action="{{ route('company-subscription-payments.confirm', $paymentRequest) }}" onsubmit="return confirm('Confirma que recibiste el pago antes de renovar la suscripción de esta empresa.');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-success">Confirmar pago</button>
+                                            </form>
+                                            <form method="POST" action="{{ route('company-subscription-payments.hide', $paymentRequest) }}" onsubmit="return confirm('¿Ocultar esta solicitud? El registro se conservará en la base de datos.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Ocultar</button>
+                                            </form>
+                                        </div>
+                                    @elseif($paymentRequest->status === 'superseded')
+                                        <form method="POST" action="{{ route('company-subscription-payments.hide', $paymentRequest) }}" onsubmit="return confirm('¿Ocultar esta solicitud reemplazada? El registro se conservará en la base de datos.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Ocultar</button>
+                                        </form>
+                                    @else
+                                        <span class="small text-muted">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3">
+                {{ $companyPayments->links() }}
             </div>
         @endif
     </div>

@@ -251,6 +251,7 @@
 
         <main id="appContent" class="px-md-4 px-3">
             @include('components.flash-messages')
+            @include('components.company-subscription-alert')
 
             @yield('content')
         </main>

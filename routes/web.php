@@ -7,6 +7,7 @@ use App\Http\Controllers\CompanyAdminController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanySubscriptionController;
+use App\Http\Controllers\CompanySubscriptionPaymentController;
 use App\Http\Controllers\CompanySubscriptionStatusController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerInvitationController;
@@ -47,16 +48,19 @@ Route::middleware('auth')->group(function () {
     Route::get('policies/terms-and-conditions', [PolicyController::class, 'show'])->name('policy.show');
     Route::post('policies/accept', [PolicyController::class, 'accept'])->name('policy.accept');
 
-    Route::get('/', [DashboardController::class, 'index'])->middleware('workshop')->name('home');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('workshop')->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->middleware(['workshop', 'subscription.active'])->name('home');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['workshop', 'subscription.active'])->name('dashboard');
 
     // Dashboard temporal para Usuario de Empresa
-    Route::get('/company/dashboard', [DashboardController::class, 'company'])->middleware('workshop')->name('company.dashboard');
+    Route::get('/company/dashboard', [DashboardController::class, 'company'])->middleware(['workshop', 'subscription.active'])->name('company.dashboard');
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     // Estado de cuenta y suscripción (accesible siempre para ver estatus / pantalla de bloqueo)
     Route::get('subscription-status', [CompanySubscriptionStatusController::class, 'show'])->name('subscription.status');
+    Route::post('company-subscription-payment-requests', [CompanySubscriptionPaymentController::class, 'store'])
+        ->middleware(['workshop', 'company_admin'])
+        ->name('company-subscription-payments.store');
 
     // Módulos exclusivos para super_admin (Planes, Empresas, Suscripciones)
     Route::middleware('super_admin')->group(function () {
@@ -79,6 +83,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('client-subscriptions/{customer_payment}/confirm', [ClientSubscriptionController::class, 'confirmPayment'])->name('client-subscriptions.confirm');
         Route::delete('client-subscriptions/{customer_payment}', [ClientSubscriptionController::class, 'hideRequest'])->name('client-subscriptions.hide');
         Route::patch('client-subscriptions/{customer_payment}/reverse', [ClientSubscriptionController::class, 'reversePayment'])->name('client-subscriptions.reverse');
+
+        // Solicitudes de renovación de talleres y concesionarios
+        Route::patch('company-subscription-payments/{company_payment_request}/confirm', [CompanySubscriptionPaymentController::class, 'confirm'])->name('company-subscription-payments.confirm');
+        Route::delete('company-subscription-payments/{company_payment_request}', [CompanySubscriptionPaymentController::class, 'hide'])->name('company-subscription-payments.hide');
     });
 
     // Módulos operativos protegidos por estado de suscripción activa de la empresa
