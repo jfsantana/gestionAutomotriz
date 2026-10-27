@@ -14,9 +14,13 @@ class CustomerAndVehicleManagementTest extends TestCase
     use RefreshDatabase;
 
     protected Company $companyA;
+
     protected Company $companyB;
+
     protected User $adminA;
+
     protected User $adminB;
+
     protected Customer $customerA;
 
     protected function setUp(): void
@@ -98,6 +102,7 @@ class CustomerAndVehicleManagementTest extends TestCase
             'customer_id' => $this->customerA->id,
             'plate' => 'A987654',
             'vin' => '1HGCR2F83HA123456',
+            'vehicle_type' => 'carro',
             'make' => 'Honda',
             'model' => 'Accord',
             'year' => 2021,
@@ -121,6 +126,71 @@ class CustomerAndVehicleManagementTest extends TestCase
         $this->assertEquals(1, $this->customerA->fresh()->vehicles()->count());
     }
 
+    public function test_new_vehicle_form_displays_brands_from_the_catalog(): void
+    {
+        $response = $this->actingAs($this->adminA)
+            ->get(route('customers.vehicles.create', $this->customerA));
+
+        $response->assertOk()
+            ->assertSee('value="Toyota"', false)
+            ->assertSee('value="Honda"', false)
+            ->assertSee('Chuto / Tractocamión')
+            ->assertSee('data-vehicle-type="camion"', false);
+    }
+
+    public function test_company_admin_can_register_a_truck_with_a_truck_brand(): void
+    {
+        $payload = [
+            'customer_id' => $this->customerA->id,
+            'plate' => 'TRK123',
+            'vehicle_type' => 'camion',
+            'make' => 'Isuzu',
+            'model' => 'NPR',
+        ];
+
+        $response = $this->actingAs($this->adminA)->post(route('vehicles.store'), $payload);
+
+        $response->assertRedirect(route('customers.show', $this->customerA));
+        $this->assertDatabaseHas('vehicles', [
+            'plate' => 'TRK123',
+            'vehicle_type' => 'camion',
+            'make' => 'Isuzu',
+            'model' => 'NPR',
+        ]);
+    }
+
+    public function test_vehicle_brand_must_belong_to_the_selected_vehicle_type(): void
+    {
+        $payload = [
+            'customer_id' => $this->customerA->id,
+            'plate' => 'TRK456',
+            'vehicle_type' => 'camion',
+            'make' => 'Toyota',
+            'model' => 'NPR',
+        ];
+
+        $response = $this->actingAs($this->adminA)->post(route('vehicles.store'), $payload);
+
+        $response->assertSessionHasErrors(['make']);
+        $this->assertDatabaseMissing('vehicles', ['plate' => 'TRK456']);
+    }
+
+    public function test_vehicle_cannot_be_created_with_a_brand_outside_the_catalog(): void
+    {
+        $payload = [
+            'customer_id' => $this->customerA->id,
+            'plate' => 'Z123456',
+            'vehicle_type' => 'carro',
+            'make' => 'Marca inventada',
+            'model' => 'Modelo de prueba',
+        ];
+
+        $response = $this->actingAs($this->adminA)->post(route('vehicles.store'), $payload);
+
+        $response->assertSessionHasErrors(['make']);
+        $this->assertDatabaseMissing('vehicles', ['plate' => 'Z123456']);
+    }
+
     /**
      * Valida el aislamiento: company_admin B no puede ver la ficha de un cliente de la empresa A.
      */
@@ -139,6 +209,7 @@ class CustomerAndVehicleManagementTest extends TestCase
         $payload = [
             'customer_id' => $this->customerA->id,
             'plate' => 'B123456',
+            'vehicle_type' => 'carro',
             'make' => 'Toyota',
             'model' => 'Corolla',
         ];
@@ -166,6 +237,7 @@ class CustomerAndVehicleManagementTest extends TestCase
         $payload = [
             'customer_id' => $this->customerA->id,
             'plate' => 'A111111',
+            'vehicle_type' => 'carro',
             'make' => 'Kia',
             'model' => 'K5',
         ];
@@ -186,6 +258,7 @@ class CustomerAndVehicleManagementTest extends TestCase
             'customer_id' => $this->customerA->id,
             'company_id' => $this->companyB->id, // Intento malicioso de forzar otra empresa
             'plate' => 'C999888',
+            'vehicle_type' => 'carro',
             'make' => 'Mazda',
             'model' => 'CX-5',
         ];
@@ -202,6 +275,7 @@ class CustomerAndVehicleManagementTest extends TestCase
         $updatePayload = [
             'company_id' => $this->companyB->id, // Intento de alterar la empresa
             'plate' => 'C999888',
+            'vehicle_type' => 'carro',
             'make' => 'Mazda',
             'model' => 'CX-5 Modificado',
         ];
@@ -215,4 +289,3 @@ class CustomerAndVehicleManagementTest extends TestCase
         $this->assertEquals($this->companyA->id, $vehicle->company_id);
     }
 }
-

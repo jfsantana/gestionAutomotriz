@@ -182,7 +182,7 @@ class CompanyOwnershipTest extends TestCase
         foreach (['NUEVO1', 'NUEVO2', 'NUEVO3'] as $plate) {
             $this->post(route('vehicles.store'), [
                 'customer_id' => $customer->id, 'company_id' => $this->companyB->id,
-                'plate' => $plate, 'make' => 'Toyota', 'model' => 'Corolla',
+                'plate' => $plate, 'vehicle_type' => 'carro', 'make' => 'Toyota', 'model' => 'Corolla',
             ])->assertSessionHasNoErrors();
         }
 

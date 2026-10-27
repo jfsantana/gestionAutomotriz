@@ -2,7 +2,8 @@
 
 namespace App\Http\Requests\Vehicles;
 
-use App\Domain\Companies\Models\Customer;
+use App\Domain\Vehicles\Enums\VehicleType;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,13 +15,14 @@ class StoreVehicleRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+
         return $user && in_array($user->role, ['super_admin', 'company_admin'], true);
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -54,9 +56,16 @@ class StoreVehicleRequest extends FormRequest
                 }),
             ],
             'vin' => ['nullable', 'string', 'max:50'],
-            'make' => ['required', 'string', 'max:80'],
+            'vehicle_type' => ['required', Rule::in(array_keys(VehicleType::options()))],
+            'make' => [
+                'required',
+                'string',
+                'max:80',
+                Rule::exists('vehicle_brands', 'name')
+                    ->where(fn ($query) => $query->where('vehicle_type', $this->input('vehicle_type'))),
+            ],
             'model' => ['required', 'string', 'max:80'],
-            'year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 2)],
+            'year' => ['nullable', 'integer', 'min:1900', 'max:'.(date('Y') + 2)],
             'color' => ['nullable', 'string', 'max:50'],
             'current_mileage' => ['nullable', 'integer', 'min:0'],
             'fuel_type' => ['nullable', 'string', 'max:30'],

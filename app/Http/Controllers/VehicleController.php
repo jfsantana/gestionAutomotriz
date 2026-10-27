@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
 use App\Domain\Maintenance\Models\MaintenanceOrderPhoto;
+use App\Domain\Vehicles\Enums\VehicleType;
 use App\Domain\Vehicles\Models\Vehicle;
+use App\Domain\Vehicles\Models\VehicleBrand;
 use App\Http\Requests\Vehicles\StoreVehiclePrivacyRequest;
 use App\Http\Requests\Vehicles\UpdateVehicleRequest;
 use App\Services\MaintenanceReminderService;
@@ -49,8 +51,10 @@ class VehicleController extends Controller
             'company_id' => $customer->company_id,
             'current_mileage' => 0,
         ]);
+        $brands = VehicleBrand::query()->orderBy('name')->get(['name', 'vehicle_type']);
+        $vehicleTypes = VehicleType::options();
 
-        return view('vehicles.create', compact('vehicle', 'customer'));
+        return view('vehicles.create', compact('vehicle', 'customer', 'brands', 'vehicleTypes'));
     }
 
     /**
@@ -118,8 +122,10 @@ class VehicleController extends Controller
         $this->authorizeVehicleAccess($request->user(), $vehicle);
 
         $vehicle->load('customer');
+        $brands = VehicleBrand::query()->orderBy('name')->get(['name', 'vehicle_type']);
+        $vehicleTypes = VehicleType::options();
 
-        return view('vehicles.edit', compact('vehicle'));
+        return view('vehicles.edit', compact('vehicle', 'brands', 'vehicleTypes'));
     }
 
     /**

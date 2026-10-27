@@ -15,11 +15,17 @@ class VehiclePrivacyAndDecommissionTest extends TestCase
     use RefreshDatabase;
 
     protected Company $companyA;
+
     protected Company $companyB;
+
     protected User $adminA;
+
     protected User $adminB;
+
     protected Customer $customerOld;
+
     protected Customer $customerNew;
+
     protected Vehicle $vehicle;
 
     protected function setUp(): void
@@ -88,6 +94,7 @@ class VehiclePrivacyAndDecommissionTest extends TestCase
         $payload = [
             'customer_id' => $this->customerNew->id,
             'plate' => 'A777888',
+            'vehicle_type' => 'carro',
             'make' => 'Toyota',
             'model' => 'Corolla',
         ];
@@ -140,6 +147,7 @@ class VehiclePrivacyAndDecommissionTest extends TestCase
         $payloadNew = [
             'customer_id' => $this->customerNew->id,
             'plate' => 'A777888',
+            'vehicle_type' => 'carro',
             'make' => 'Toyota',
             'model' => 'Corolla',
             'current_mileage' => 50000,

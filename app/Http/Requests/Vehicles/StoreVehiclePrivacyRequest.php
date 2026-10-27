@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Vehicles;
 
+use App\Domain\Vehicles\Enums\VehicleType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +11,7 @@ class StoreVehiclePrivacyRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+
         return $user && in_array($user->role, ['super_admin', 'company_admin'], true);
     }
 
@@ -33,9 +35,16 @@ class StoreVehiclePrivacyRequest extends FormRequest
             ],
             'plate' => ['required', 'string', 'max:30'],
             'vin' => ['nullable', 'string', 'max:50'],
-            'make' => ['required', 'string', 'max:80'],
+            'vehicle_type' => ['required', Rule::in(array_keys(VehicleType::options()))],
+            'make' => [
+                'required',
+                'string',
+                'max:80',
+                Rule::exists('vehicle_brands', 'name')
+                    ->where(fn ($query) => $query->where('vehicle_type', $this->input('vehicle_type'))),
+            ],
             'model' => ['required', 'string', 'max:80'],
-            'year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 2)],
+            'year' => ['nullable', 'integer', 'min:1900', 'max:'.(date('Y') + 2)],
             'color' => ['nullable', 'string', 'max:50'],
             'photo' => ['nullable', 'image', 'max:5120'], // Máximo 5MB
             'current_mileage' => ['nullable', 'integer', 'min:0'],

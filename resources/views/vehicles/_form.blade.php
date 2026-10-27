@@ -36,16 +36,47 @@
     </div>
 
     <div class="col-md-6">
-        <label for="make" class="form-label fw-semibold">Marca <span class="text-danger">*</span></label>
-        <input 
-            type="text" 
-            class="form-control @error('make') is-invalid @enderror" 
-            id="make" 
-            name="make" 
-            value="{{ old('make', $vehicle->make) }}" 
-            placeholder="Ej. Toyota, Honda, Hyundai"
+        <label for="vehicle_type" class="form-label fw-semibold">Tipo de Vehículo <span class="text-danger">*</span></label>
+        <select
+            class="form-select @error('vehicle_type') is-invalid @enderror"
+            id="vehicle_type"
+            name="vehicle_type"
             required
         >
+            <option value="">-- Selecciona un tipo --</option>
+            @foreach($vehicleTypes as $type => $label)
+                <option value="{{ $type }}" @selected(old('vehicle_type', $vehicle->vehicle_type) === $type)>
+                    {{ $label }}
+                </option>
+            @endforeach
+        </select>
+        @error('vehicle_type')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-6">
+        <label for="make" class="form-label fw-semibold">Marca <span class="text-danger">*</span></label>
+        <select
+            class="form-select @error('make') is-invalid @enderror"
+            id="make"
+            name="make"
+            required
+        >
+            <option value="">-- Selecciona primero un tipo de vehículo --</option>
+            @foreach($brands as $brand)
+                <option
+                    value="{{ $brand->name }}"
+                    data-vehicle-type="{{ $brand->vehicle_type }}"
+                    @selected(
+                        old('make', $vehicle->make) === $brand->name
+                        && old('vehicle_type', $vehicle->vehicle_type ?? 'carro') === $brand->vehicle_type
+                    )
+                >
+                    {{ $brand->name }}
+                </option>
+            @endforeach
+        </select>
         @error('make')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
@@ -166,6 +197,35 @@
         @enderror
     </div>
 </div>
+
+<script>
+    const vehicleTypeSelect = document.getElementById('vehicle_type');
+    const vehicleBrandSelect = document.getElementById('make');
+
+    function filterVehicleBrands() {
+        const selectedType = vehicleTypeSelect.value;
+
+        Array.from(vehicleBrandSelect.options).forEach((option) => {
+            if (!option.value) {
+                return;
+            }
+
+            const matchesType = !selectedType || option.dataset.vehicleType === selectedType;
+            option.hidden = !matchesType;
+            option.disabled = !matchesType;
+        });
+
+        const selectedBrand = vehicleBrandSelect.selectedOptions[0];
+        if (selectedType && selectedBrand?.dataset.vehicleType !== selectedType) {
+            vehicleBrandSelect.value = '';
+        }
+
+        vehicleBrandSelect.disabled = !selectedType && !vehicleBrandSelect.value;
+    }
+
+    vehicleTypeSelect.addEventListener('change', filterVehicleBrands);
+    filterVehicleBrands();
+</script>
 
 <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
     @if(isset($customer) && $customer)

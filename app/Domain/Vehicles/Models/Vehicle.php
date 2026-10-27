@@ -35,6 +35,7 @@ class Vehicle extends Model
         'customer_id',
         'plate',
         'vin',
+        'vehicle_type',
         'make',
         'model',
         'year',
