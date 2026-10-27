@@ -76,7 +76,18 @@
             </button>
         </form>
 
+        <div class="my-3 d-flex align-items-center gap-3">
+            <hr class="flex-grow-1 my-0">
+            <span class="text-muted small">o</span>
+            <hr class="flex-grow-1 my-0">
+        </div>
+
+        <a href="{{ route('login.google.redirect') }}" class="btn btn-outline-secondary w-100 py-2 fw-semibold">
+            Continuar con Google
+        </a>
+
         <div class="text-center mt-4 border-top pt-3">
+            <p class="small mb-2">¿Eres propietario de un vehículo? <a href="{{ route('customer.register') }}">Crear cuenta de cliente</a></p>
             <span class="text-muted small">Plataforma Segura Multiempresa</span>
         </div>
     </div>

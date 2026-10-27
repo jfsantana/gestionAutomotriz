@@ -8,6 +8,9 @@
         <x-page-heading section="vehicles" class="h4 mb-0 fw-bold text-dark">Mis Vehículos</x-page-heading>
         <p class="text-muted mb-0 small">Consulta los vehículos registrados a tu nombre</p>
     </div>
+    @if($canAddVehicle)
+        <a href="{{ route('portal.vehicles.create') }}" class="btn btn-sm btn-primary fw-semibold">+ Registrar vehículo</a>
+    @endif
 </div>
 
 @if(session('success'))
@@ -33,7 +36,10 @@
     <div class="card shadow-sm border-0 p-5 text-center">
         <span class="fs-1 text-muted mb-2">&#128663;</span>
         <h5 class="fw-bold text-dark">No tienes vehículos activos</h5>
-        <p class="text-secondary small mb-0">Comunícate con tu taller o concesionario para vincular un vehículo a tu cuenta.</p>
+        <p class="text-secondary small mb-3">Puedes registrar tus vehículos directamente o aceptar una invitación de un taller.</p>
+        @if($canAddVehicle)
+            <a href="{{ route('portal.vehicles.create') }}" class="btn btn-primary btn-sm">Registrar mi primer vehículo</a>
+        @endif
     </div>
 @else
     <div class="row g-4">

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Users\Models\PlatformPolicy;
 use App\Domain\Users\Models\UserPolicyAcceptance;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,12 +17,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'username', 'email', 'password', 'role', 'company_id', 'customer_id', 'is_active', 'account_status', 'last_login_at', 'activated_at'])]
+#[Fillable(['name', 'username', 'email', 'password', 'role', 'company_id', 'customer_id', 'is_active', 'account_status', 'last_login_at', 'activated_at', 'email_verification_required'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, MustVerifyEmailTrait, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -32,6 +33,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_verification_required' => 'boolean',
             'last_login_at' => 'datetime',
             'activated_at' => 'datetime',
             'is_active' => 'boolean',

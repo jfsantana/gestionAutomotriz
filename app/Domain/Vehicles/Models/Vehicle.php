@@ -119,15 +119,19 @@ class Vehicle extends Model
      */
     public function maintenanceOrders(): HasMany
     {
-        return $this->hasMany(MaintenanceOrder::class, 'vehicle_id')
-            ->withConsistentOwnership();
+        return $this->hasMany(MaintenanceOrder::class, 'vehicle_id');
     }
 
     #[Scope]
     protected function withConsistentOwnership(Builder $query): void
     {
         $query->whereHas('customer', fn (Builder $customer) => $customer
-            ->whereColumn('customers.company_id', 'vehicles.company_id')
-            ->whereHas('company'));
+            ->where(function (Builder $company) {
+                $company->whereColumn('customers.company_id', 'vehicles.company_id')
+                    ->orWhere(function (Builder $bothNull): void {
+                        $bothNull->whereNull('customers.company_id')
+                            ->whereNull('vehicles.company_id');
+                    });
+            }));
     }
 }

@@ -102,7 +102,7 @@ class MaintenanceOrderController extends Controller
 
         $companyId = $customer->company_id;
 
-        if ((int) $vehicle->company_id !== (int) $companyId
+        if (! $companyId || (int) $vehicle->company_id !== (int) $companyId
             || ($currentUser->role !== 'super_admin' && (int) $companyId !== (int) $currentUser->company_id)) {
             abort(403, 'El vehículo pertenece a otra empresa.');
         }
@@ -245,12 +245,15 @@ class MaintenanceOrderController extends Controller
 
     protected function authorizeOrderAccess($currentUser, MaintenanceOrder $order): void
     {
-        abort_unless(
-            in_array($currentUser->role, ['super_admin', 'company_admin', 'mechanic'], true)
-            && ($currentUser->role === 'super_admin' || ($currentUser->company_id && (int) $order->company_id === (int) $currentUser->company_id))
-            && MaintenanceOrder::withConsistentOwnership()->whereKey($order->id)->exists(),
-            403,
-            'No tienes autorización para acceder a esta orden.'
-        );
+        abort_unless(in_array($currentUser->role, ['super_admin', 'company_admin', 'mechanic'], true), 403);
+
+        if ($currentUser->role !== 'super_admin') {
+            abort_unless(
+                $currentUser->company_id && (int) $order->company_id === (int) $currentUser->company_id,
+                404
+            );
+        }
+
+        abort_unless(MaintenanceOrder::withConsistentOwnership()->whereKey($order->id)->exists(), 404);
     }
 }

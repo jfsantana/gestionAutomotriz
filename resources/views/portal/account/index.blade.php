@@ -87,6 +87,34 @@
         </div>
     </div>
 
+    <div class="col-12">
+        <div class="card border-warning shadow-sm">
+            <div class="card-header bg-warning-subtle py-2">
+                <strong class="small">Relación con talleres</strong>
+            </div>
+            <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h6 class="fw-bold mb-1 text-dark">Taller actual: {{ $customer?->company?->name ?? 'Sin taller asociado' }}</h6>
+                    <small class="text-muted">
+                        Tu historial se conserva como auditoría. Los talleres solo consultan los mantenimientos que ellos registraron.
+                    </small>
+                </div>
+                @if($customer?->company_id)
+                    @if($customer->isFleetPremiumActive())
+                        <form method="POST" action="{{ route('portal.account.workshop-relationship.end') }}" onsubmit="return confirm('¿Confirmas cerrar inmediatamente la relación con tu taller? Conservarás tus vehículos y tu historial, pero se eliminarán los precios registrados.');">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-warning btn-sm fw-bold">
+                                Cerrar relación con mi taller
+                            </button>
+                        </form>
+                    @else
+                        <small class="text-muted">Para cerrar la relación desde el portal necesitas una suscripción de flota pagada y vigente.</small>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+
     {{-- ZONA DE PELIGRO: DAR DE BAJA MI CUENTA --}}
     <div class="col-12">
         <div class="card border-danger shadow-sm">

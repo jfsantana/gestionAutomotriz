@@ -14,7 +14,12 @@
             @endif
         </p>
     </div>
-    <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+        @if(auth()->user()->role === 'company_admin')
+            <a href="{{ route('workshop-associations.create') }}" class="btn btn-sm btn-outline-primary fw-semibold">
+                Invitar cliente existente
+            </a>
+        @endif
         <a href="{{ route('customers.create') }}" class="btn btn-sm btn-primary fw-semibold">
             + Nuevo Cliente
         </a>

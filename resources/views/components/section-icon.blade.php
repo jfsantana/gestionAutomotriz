@@ -13,6 +13,7 @@
         'companies' => "\u{1F3E2}",
         'company-admins', 'account' => "\u{1F464}",
         'subscription-plans' => "\u{1F4BC}",
+        'customer-subscription-rates' => "\u{1F4B2}",
         'company-subscriptions' => "\u{1F4B3}",
         'client-subscriptions' => "\u{1F4B3}",
         'policies' => "\u{1F4DC}",

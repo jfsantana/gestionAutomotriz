@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Portal;
 
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
+use App\Domain\Vehicles\Enums\VehicleType;
 use App\Domain\Vehicles\Models\Vehicle;
+use App\Domain\Vehicles\Models\VehicleBrand;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\MaintenanceReminderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ClientPortalController extends Controller
@@ -82,6 +87,9 @@ class ClientPortalController extends Controller
 
         $vehicles = $vehicleQuery->get();
         $hidden_vehicles_count = max(0, $totalVehiclesCount - $vehicles->count());
+        $canAddVehicle = $customer->hasFleetPortalAccess()
+            && ($customer->isFleetPremiumActive()
+                || $totalVehiclesCount < ($customer->vehicle_limit ?? 3));
         $fleetPayment = $hidden_vehicles_count > 0
             ? $customer->payments()->first()
             : null;
@@ -90,8 +98,87 @@ class ClientPortalController extends Controller
             'customer',
             'vehicles',
             'hidden_vehicles_count',
+            'canAddVehicle',
             'fleetPayment',
         ));
+    }
+
+    public function createVehicle(Request $request): View|RedirectResponse
+    {
+        $customer = $request->user()->customer;
+        abort_unless($customer, 404);
+        $accessRedirect = $this->redirectIfFleetAccessExpired($customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
+        if (! $customer->isFleetPremiumActive()
+            && $customer->vehicles()->count() >= ($customer->vehicle_limit ?? 3)) {
+            return redirect()->route('portal.vehicles.index')
+                ->with('error', 'Alcanzaste el límite de vehículos de tu plan actual.');
+        }
+
+        $brands = VehicleBrand::query()->orderBy('vehicle_type')->orderBy('name')->get(['name', 'vehicle_type']);
+        $vehicleTypes = VehicleType::options();
+
+        return view('portal.vehicles.create', compact('customer', 'brands', 'vehicleTypes'));
+    }
+
+    public function storeVehicle(Request $request): RedirectResponse
+    {
+        $customer = $request->user()->customer;
+        abort_unless($customer, 404);
+        $accessRedirect = $this->redirectIfFleetAccessExpired($customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
+        $request->merge(['plate' => mb_strtoupper(trim((string) $request->input('plate')))]);
+        $data = $request->validate([
+            'plate' => ['required', 'string', 'max:30'],
+            'vin' => ['nullable', 'string', 'max:50'],
+            'vehicle_type' => ['required', Rule::in(array_keys(VehicleType::options()))],
+            'make' => [
+                'required',
+                'string',
+                'max:80',
+                Rule::exists('vehicle_brands', 'name')
+                    ->where(fn ($query) => $query->where('vehicle_type', $request->input('vehicle_type'))),
+            ],
+            'model' => ['required', 'string', 'max:80'],
+            'year' => ['nullable', 'integer', 'min:1900', 'max:'.(date('Y') + 2)],
+            'color' => ['nullable', 'string', 'max:50'],
+            'current_mileage' => ['required', 'integer', 'min:0'],
+            'fuel_type' => ['nullable', 'string', 'max:30'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $vehicle = DB::transaction(function () use ($customer, $data): Vehicle {
+            $lockedCustomer = Customer::query()->lockForUpdate()->findOrFail($customer->id);
+            $activeVehiclesCount = $lockedCustomer->vehicles()->count();
+
+            if (! $lockedCustomer->isFleetPremiumActive()
+                && $activeVehiclesCount >= ($lockedCustomer->vehicle_limit ?? 3)) {
+                throw ValidationException::withMessages([
+                    'vehicle_limit' => 'Alcanzaste el límite de vehículos de tu plan actual.',
+                ]);
+            }
+
+            if (Vehicle::withTrashed()->where('plate', $data['plate'])->exists()) {
+                throw ValidationException::withMessages([
+                    'plate' => 'Este vehículo ya se encuentra registrado en la plataforma. Verifica los datos antes de continuar.',
+                ]);
+            }
+
+            return Vehicle::create([
+                ...$data,
+                'company_id' => $lockedCustomer->company_id,
+                'customer_id' => $lockedCustomer->id,
+            ]);
+        });
+
+        return redirect()->route('portal.vehicles.show', $vehicle)
+            ->with('success', 'Vehículo registrado correctamente en tu cuenta.');
     }
 
     /**
@@ -106,7 +193,11 @@ class ClientPortalController extends Controller
 
         $this->authorizeCustomerVehicle($request->user(), $vehicle);
 
-        $vehicle->load(['maintenanceOrders' => fn ($q) => $q->latest('service_date')]);
+        $vehicle->load([
+            'maintenanceOrders' => fn ($query) => $query
+                ->where('customer_id', $vehicle->customer_id)
+                ->latest('service_date'),
+        ]);
         $reminder = $this->reminderService->getVehicleReminder($vehicle);
 
         return view('portal.vehicles.show', compact('vehicle', 'reminder'));
@@ -206,7 +297,7 @@ class ClientPortalController extends Controller
         $this->authorizeCustomerVehicle($request->user(), $vehicle);
 
         $order = MaintenanceOrder::create([
-            'company_id' => $customer->company_id,
+            'company_id' => null,
             'customer_id' => $customer->id,
             'vehicle_id' => $vehicle->id,
             'registered_by_user_id' => $request->user()->id,
@@ -295,7 +386,8 @@ class ClientPortalController extends Controller
 
     protected function authorizeCustomerVehicle(User $user, Vehicle $vehicle): void
     {
-        if ((int) $vehicle->customer_id !== (int) $user->customer_id) {
+        if ((int) $vehicle->customer_id !== (int) $user->customer_id
+            || ! Vehicle::withConsistentOwnership()->whereKey($vehicle->id)->exists()) {
             abort(403, 'No tienes autorización para consultar este vehículo.');
         }
 

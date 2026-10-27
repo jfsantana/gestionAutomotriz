@@ -106,10 +106,18 @@ class VehicleController extends Controller
     {
         $this->authorizeVehicleAccess($request->user(), $vehicle);
 
-        $vehicle->load(['customer', 'company', 'maintenanceOrders' => fn ($q) => $q->latest('service_date')]);
+        $companyId = $request->user()->role === 'super_admin' ? null : $request->user()->company_id;
+        $vehicle->load([
+            'customer',
+            'company',
+            'maintenanceOrders' => fn ($query) => $query
+                ->where('customer_id', $vehicle->customer_id)
+                ->when($companyId !== null, fn ($orders) => $orders->where('company_id', $companyId))
+                ->latest('service_date'),
+        ]);
 
         $reminderService = app(MaintenanceReminderService::class);
-        $nextMaintenance = $reminderService->getVehicleReminder($vehicle);
+        $nextMaintenance = $reminderService->getVehicleReminder($vehicle, $companyId);
 
         return view('vehicles.show', compact('vehicle', 'nextMaintenance'));
     }
@@ -236,10 +244,10 @@ class VehicleController extends Controller
      */
     protected function authorizeVehicleAccess($currentUser, Vehicle $vehicle): void
     {
-        abort_unless(Vehicle::withConsistentOwnership()->whereKey($vehicle->id)->exists(), 403, 'El vehículo no está disponible en esta empresa.');
+        abort_unless(Vehicle::withConsistentOwnership()->whereKey($vehicle->id)->exists(), 404);
 
         if ($currentUser->role === 'company_admin' && (int) $vehicle->company_id !== (int) $currentUser->company_id) {
-            abort(403, 'No tienes autorización para acceder a vehículos de otra empresa.');
+            abort(404);
         }
     }
 }

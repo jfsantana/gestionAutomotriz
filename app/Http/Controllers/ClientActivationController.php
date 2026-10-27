@@ -62,6 +62,8 @@ class ClientActivationController extends Controller
             'account_status' => 'ACTIVE',
             'activated_at' => now(),
         ]);
+        $user->markEmailAsVerified();
+        $user->forceFill(['email_verification_required' => false])->save();
 
         $invitation->update(['used_at' => now()]);
 

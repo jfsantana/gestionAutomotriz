@@ -40,4 +40,10 @@ return [
         'secret' => env('TURNSTILE_SECRET_KEY', '1x0000000000000000000000000000000AA'), // Secret de prueba por defecto
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/auth/google/callback'),
+    ],
+
 ];

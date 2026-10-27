@@ -67,27 +67,60 @@ class MaintenanceOrder extends Model
     protected static function booted(): void
     {
         static::saving(function (MaintenanceOrder $order): void {
-            if ($order->exists && ! $order->isDirty(['company_id', 'customer_id', 'vehicle_id', 'service_id', 'mechanic_id', 'registered_by_user_id'])) {
+            if ($order->exists && ! $order->isDirty([
+                'company_id',
+                'customer_id',
+                'vehicle_id',
+                'service_id',
+                'mechanic_id',
+                'registered_by_user_id',
+                'origin',
+            ])) {
                 return;
             }
 
             $customer = Customer::find($order->customer_id);
             $vehicle = Vehicle::find($order->vehicle_id);
             if (! $customer || ! $vehicle || (int) $vehicle->customer_id !== (int) $customer->id
-                || (int) $vehicle->company_id !== (int) $customer->company_id) {
-                throw ValidationException::withMessages(['vehicle_id' => 'El vehículo debe pertenecer al cliente y a su empresa.']);
+                || $vehicle->company_id !== $customer->company_id) {
+                throw ValidationException::withMessages(['vehicle_id' => 'El vehículo debe pertenecer al cliente y tener la misma asociación de taller.']);
+            }
+
+            if ($order->origin === 'customer') {
+                if ($order->service_id || $order->mechanic_id) {
+                    throw ValidationException::withMessages(['origin' => 'Los registros personales no pueden atribuirse a servicios ni mecánicos de un taller.']);
+                }
+
+                if ($order->registered_by_user_id && ! User::whereKey($order->registered_by_user_id)
+                    ->where('role', 'customer')
+                    ->where('customer_id', $customer->id)
+                    ->exists()) {
+                    throw ValidationException::withMessages(['registered_by_user_id' => 'El registro personal debe pertenecer al cliente del vehículo.']);
+                }
+
+                $order->company_id = null;
+
+                return;
+            }
+
+            if (! $customer->company_id) {
+                throw ValidationException::withMessages(['customer_id' => 'El cliente debe aceptar la asociación a un taller antes de registrar una orden de taller.']);
             }
 
             $order->company_id = $customer->company_id;
 
-            if ($order->service_id && ! Service::whereKey($order->service_id)->where('company_id', $customer->company_id)->exists()) {
+            if ($order->service_id && (! $customer->company_id || ! Service::whereKey($order->service_id)->where('company_id', $customer->company_id)->exists())) {
                 throw ValidationException::withMessages(['service_id' => 'El servicio debe pertenecer a la empresa del cliente.']);
             }
-            if ($order->mechanic_id && ! User::whereKey($order->mechanic_id)->where('company_id', $customer->company_id)->where('role', 'mechanic')->exists()) {
+            if ($order->mechanic_id && (! $customer->company_id || ! User::whereKey($order->mechanic_id)->where('company_id', $customer->company_id)->where('role', 'mechanic')->exists())) {
                 throw ValidationException::withMessages(['mechanic_id' => 'El mecánico debe pertenecer a la empresa del cliente.']);
             }
             if ($order->registered_by_user_id && ! User::whereKey($order->registered_by_user_id)
-                ->where(fn (Builder $query) => $query->where('company_id', $customer->company_id)->orWhere('role', 'super_admin'))->exists()) {
+                ->where(fn (Builder $query) => $query
+                    ->where('role', 'super_admin')
+                    ->orWhere(fn (Builder $company) => $company
+                        ->where('company_id', $customer->company_id)
+                        ->whereIn('role', ['company_admin', 'mechanic'])))->exists()) {
                 throw ValidationException::withMessages(['registered_by_user_id' => 'El usuario que registra la orden no pertenece a la empresa del cliente.']);
             }
         });
@@ -96,12 +129,8 @@ class MaintenanceOrder extends Model
     #[Scope]
     protected function withConsistentOwnership(Builder $query): void
     {
-        $query->whereHas('company')
-            ->whereHas('customer', fn (Builder $customer) => $customer
-                ->whereColumn('customers.company_id', 'maintenance_orders.company_id'))
-            ->whereHas('vehicle', fn (Builder $vehicle) => $vehicle
-                ->whereColumn('vehicles.company_id', 'maintenance_orders.company_id')
-                ->whereColumn('vehicles.customer_id', 'maintenance_orders.customer_id'));
+        $query->whereHas('vehicle', fn (Builder $vehicle) => $vehicle
+            ->whereColumn('vehicles.customer_id', 'maintenance_orders.customer_id'));
     }
 
     public function company(): BelongsTo

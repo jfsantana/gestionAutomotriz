@@ -51,7 +51,6 @@
                             <th scope="col">Kilometraje</th>
                             <th scope="col">Origen del Registro</th>
                             <th scope="col">Observaciones</th>
-                            <th scope="col" class="text-end pe-4">Costo</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -83,13 +82,6 @@
                                     <small class="text-secondary d-block" style="max-width: 280px;">
                                         {{ $ord->customer_notes ?: $ord->technical_notes ?: 'Sin observaciones' }}
                                     </small>
-                                </td>
-                                <td class="text-end pe-4">
-                                    @if($ord->cost !== null)
-                                        <strong class="text-dark">${{ number_format($ord->cost, 2) }}</strong>
-                                    @else
-                                        <span class="text-muted">—</span>
-                                    @endif
                                 </td>
                             </tr>
                         @endforeach

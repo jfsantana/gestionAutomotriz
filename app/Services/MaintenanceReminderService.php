@@ -123,9 +123,9 @@ class MaintenanceReminderService
     /**
      * Obtiene el próximo mantenimiento pendiente y evaluado para un vehículo.
      */
-    public function getVehicleReminder(Vehicle $vehicle): ?array
+    public function getVehicleReminder(Vehicle $vehicle, ?int $companyId = null): ?array
     {
-        $latestOrder = $this->scheduledOrdersQuery($vehicle->company_id)
+        $latestOrder = $this->scheduledOrdersQuery($companyId)
             ->where('vehicle_id', $vehicle->id)
             ->latest('service_date')
             ->latest('id')

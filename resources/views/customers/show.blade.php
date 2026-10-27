@@ -22,6 +22,14 @@
                 Dar de Baja Cliente
             </button>
         </form>
+        @if($customer->company_id)
+            <form method="POST" action="{{ route('customers.workshop-relationship.end', $customer) }}" onsubmit="return confirm('¿Cerrar la relación con este cliente? Se conservarán sus vehículos y el historial de auditoría, pero se eliminarán permanentemente los precios de sus mantenimientos.');">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-warning">
+                    Cerrar relación con el cliente
+                </button>
+            </form>
+        @endif
         <a href="{{ route('customers.index') }}" class="btn btn-sm btn-outline-secondary">
             &larr; Volver a Clientes
         </a>

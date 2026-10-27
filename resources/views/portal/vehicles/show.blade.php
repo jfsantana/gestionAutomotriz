@@ -107,9 +107,6 @@
                                             <small class="text-secondary d-block">
                                                 {{ Str::limit($ord->technical_notes ?: $ord->customer_notes ?: 'Sin notas', 40) }}
                                             </small>
-                                            @if($ord->cost)
-                                                <small class="text-dark fw-bold">${{ number_format($ord->cost, 2) }}</small>
-                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

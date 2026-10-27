@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Domain\Billing\Models\CustomerPayment;
+use App\Domain\Billing\Models\CustomerSubscriptionRate;
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Vehicles\Enums\VehicleType;
 use App\Domain\Vehicles\Models\Vehicle;
@@ -170,9 +171,12 @@ class ClientSubscriptionService
      */
     private function calculatePricing(Customer $customer, Collection $vehicles, string $billingCycle): array
     {
-        $rates = config("customer_subscriptions.rates.{$customer->customer_type}");
+        $rates = CustomerSubscriptionRate::query()
+            ->where('customer_type', $customer->customer_type)
+            ->pluck('monthly_price', 'vehicle_type')
+            ->all();
 
-        if (! is_array($rates)) {
+        if ($rates === []) {
             throw ValidationException::withMessages([
                 'vehicles' => 'No existe una tarifa configurada para este tipo de cliente.',
             ]);

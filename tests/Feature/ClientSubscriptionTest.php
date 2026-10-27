@@ -7,6 +7,7 @@ use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Users\Models\PlatformPolicy;
 use App\Domain\Users\Models\UserPolicyAcceptance;
+use App\Domain\Vehicles\Enums\VehicleType;
 use App\Domain\Vehicles\Models\Vehicle;
 use App\Mail\ClientFleetPaymentRequestedMail;
 use App\Models\User;
@@ -59,6 +60,102 @@ class ClientSubscriptionTest extends TestCase
         $this->assertSame('187.00', $payment->amount);
         $this->assertSame(11, $payment->pricing_breakdown['billing_months_charged']);
         $this->assertSame('17.00', $payment->pricing_breakdown['monthly_total']);
+    }
+
+    public function test_super_admin_can_change_customer_rates_and_new_requests_use_them(): void
+    {
+        Mail::fake();
+        [$customer, $user] = $this->createCustomerAndPortalUser('fleet_owner');
+        $this->createVehicles($customer, ['motocicleta', 'carro', 'van', 'camion']);
+        $initialRequest = $this->actingAs($user)->post(route('portal.customers.upgrade-to-fleet', $customer), [
+            'billing_cycle' => 'monthly',
+        ]);
+        $initialRequest->assertRedirect();
+        $initialPayment = CustomerPayment::query()->firstOrFail();
+        $admin = $this->createSuperAdmin();
+        $vehicleTypes = array_keys(VehicleType::options());
+        $rates = [
+            'individual' => array_fill_keys($vehicleTypes, '2.00'),
+            'fleet_owner' => array_fill_keys($vehicleTypes, '2.00'),
+        ];
+
+        $response = $this->actingAs($admin)->put(route('customer-subscription-rates.update'), [
+            'rates' => $rates,
+        ]);
+
+        $response->assertRedirect(route('customer-subscription-rates.edit'))
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('customer_subscription_rates', [
+            'customer_type' => 'fleet_owner',
+            'vehicle_type' => 'carro',
+            'monthly_price' => '2.00',
+        ]);
+
+        $this->patch(route('client-subscriptions.confirm', $initialPayment))
+            ->assertRedirect();
+        $this->assertDatabaseHas('pagos_clientes', [
+            'id' => $initialPayment->id,
+            'status' => 'superseded',
+        ]);
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'is_fleet_premium' => false,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('portal.customers.upgrade-to-fleet', $customer), [
+            'billing_cycle' => 'monthly',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('pagos_clientes', [
+            'customer_id' => $customer->id,
+            'amount' => '8.00',
+            'status' => 'requested',
+        ]);
+    }
+
+    public function test_only_super_admin_can_view_customer_subscription_rates(): void
+    {
+        [, $customerUser] = $this->createCustomerAndPortalUser();
+
+        $this->actingAs($customerUser)
+            ->get(route('customer-subscription-rates.edit'))
+            ->assertForbidden();
+    }
+
+    public function test_super_admin_can_view_the_customer_subscription_rate_form(): void
+    {
+        $admin = $this->createSuperAdmin();
+
+        $response = $this->actingAs($admin)->get(route('customer-subscription-rates.edit'));
+
+        $response->assertOk()
+            ->assertSee('Tarifas de Suscripción de Clientes')
+            ->assertSee('Tarifas de Clientes')
+            ->assertSee('name="rates[individual][carro]"', false)
+            ->assertSee('name="rates[fleet_owner][carro]"', false)
+            ->assertSee('USD/mes');
+    }
+
+    public function test_customer_subscription_rate_update_requires_every_vehicle_rate(): void
+    {
+        $admin = $this->createSuperAdmin();
+        $rates = [
+            'individual' => ['motocicleta' => '3.00'],
+            'fleet_owner' => ['motocicleta' => '3.00'],
+        ];
+
+        $response = $this->from(route('customer-subscription-rates.edit'))
+            ->actingAs($admin)
+            ->put(route('customer-subscription-rates.update'), ['rates' => $rates]);
+
+        $response->assertRedirect(route('customer-subscription-rates.edit'))
+            ->assertSessionHasErrors('rates.individual.carro');
+        $this->assertDatabaseHas('customer_subscription_rates', [
+            'customer_type' => 'fleet_owner',
+            'vehicle_type' => 'carro',
+            'monthly_price' => '4.00',
+        ]);
     }
 
     public function test_super_admin_confirmation_activates_premium_and_sets_the_annual_expiration(): void

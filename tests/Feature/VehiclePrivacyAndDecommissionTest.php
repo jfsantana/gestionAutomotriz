@@ -133,7 +133,7 @@ class VehiclePrivacyAndDecommissionTest extends TestCase
     {
         $response = $this->actingAs($this->adminB)->get("/vehicles/{$this->vehicle->id}");
 
-        $response->assertStatus(403);
+        $response->assertNotFound();
     }
 
     /**

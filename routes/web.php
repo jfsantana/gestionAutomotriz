@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ClientActivationController;
 use App\Http\Controllers\ClientSubscriptionController;
 use App\Http\Controllers\CompanyAdminController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\CompanySubscriptionPaymentController;
 use App\Http\Controllers\CompanySubscriptionStatusController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerInvitationController;
+use App\Http\Controllers\CustomerSelfRegistrationController;
+use App\Http\Controllers\CustomerSubscriptionRateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\MaintenanceOrderController;
@@ -21,6 +24,10 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\SubscriptionPlanController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\WorkshopCustomerRelationshipController;
+use App\Http\Middleware\EnsureCustomerEmailVerified;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,6 +43,16 @@ Route::get('/health', HealthController::class)->name('health');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
+        ->middleware('throttle:10,1')
+        ->name('login.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
+        ->middleware('throttle:10,1')
+        ->name('login.google.callback');
+    Route::get('/register', [CustomerSelfRegistrationController::class, 'create'])->name('customer.register');
+    Route::post('/register', [CustomerSelfRegistrationController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('customer.register.store');
 
     // Activación y Creación de Contraseña del Cliente Invitado (Vía Token de Correo)
     Route::get('portal/activate/{token}', [ClientActivationController::class, 'show'])->name('portal.activate.show');
@@ -47,6 +64,30 @@ Route::middleware('auth')->group(function () {
     // Pantalla de Aceptación Obligatoria de Políticas (vía middleware EnsurePolicyAccepted)
     Route::get('policies/terms-and-conditions', [PolicyController::class, 'show'])->name('policy.show');
     Route::post('policies/accept', [PolicyController::class, 'accept'])->name('policy.accept');
+
+    Route::get('email/verify', fn () => view('auth.verify-email'))->name('verification.notice');
+    Route::get('email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+        $request->fulfill();
+        $request->user()->forceFill(['email_verification_required' => false])->save();
+
+        return redirect()->route('portal.dashboard')->with('success', 'Tu correo fue verificado. Ya puedes usar el portal.');
+    })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::post('email/verification-notification', function (Request $request) {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->route('portal.dashboard');
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('status', 'Te enviamos un nuevo enlace de verificación.');
+    })->middleware('throttle:6,1')->name('verification.send');
+
+    Route::get('workshop-associations/{token}', [WorkshopCustomerRelationshipController::class, 'showInvitation'])
+        ->middleware(EnsureCustomerEmailVerified::class)
+        ->name('workshop-associations.show');
+    Route::post('workshop-associations/{token}/accept', [WorkshopCustomerRelationshipController::class, 'acceptInvitation'])
+        ->middleware(EnsureCustomerEmailVerified::class)
+        ->name('workshop-associations.accept');
 
     Route::get('/', [DashboardController::class, 'index'])->middleware(['workshop', 'subscription.active'])->name('home');
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['workshop', 'subscription.active'])->name('dashboard');
@@ -73,6 +114,8 @@ Route::middleware('auth')->group(function () {
         // Gestión de Planes SaaS
         Route::patch('subscription-plans/{subscription_plan}/toggle-status', [SubscriptionPlanController::class, 'toggleStatus'])->name('subscription-plans.toggle-status');
         Route::resource('subscription-plans', SubscriptionPlanController::class)->except(['show', 'destroy']);
+        Route::get('customer-subscription-rates', [CustomerSubscriptionRateController::class, 'edit'])->name('customer-subscription-rates.edit');
+        Route::put('customer-subscription-rates', [CustomerSubscriptionRateController::class, 'update'])->name('customer-subscription-rates.update');
 
         // Gestión de Suscripciones por Empresa
         Route::post('company-subscriptions/{company_subscription}/renew', [CompanySubscriptionController::class, 'renew'])->name('company-subscriptions.renew');
@@ -111,6 +154,12 @@ Route::middleware('auth')->group(function () {
                 ->middleware('throttle:10,1')
                 ->name('reminders.send');
             Route::post('customers/{customer}/invite', [CustomerInvitationController::class, 'send'])->name('customers.invite');
+            Route::post('customers/{customer}/end-workshop-relationship', [WorkshopCustomerRelationshipController::class, 'endForCustomer'])
+                ->name('customers.workshop-relationship.end');
+            Route::get('company/workshop-associations/create', [WorkshopCustomerRelationshipController::class, 'create'])
+                ->name('workshop-associations.create');
+            Route::post('company/workshop-associations', [WorkshopCustomerRelationshipController::class, 'store'])
+                ->name('workshop-associations.store');
             Route::resource('customers', CustomerController::class);
 
             // Flujo contextual de vehículos por cliente
@@ -129,12 +178,14 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // PORTAL EXCLUSIVO PARA CLIENTES (Rol: customer)
     // ==========================================
-    Route::middleware('customer.only')->prefix('portal')->name('portal.')->group(function () {
+    Route::middleware(['customer.only', EnsureCustomerEmailVerified::class])->prefix('portal')->name('portal.')->group(function () {
         // 1. Inicio / Resumen
         Route::get('/', [ClientPortalController::class, 'dashboard'])->name('dashboard');
 
         // 2. Mis Vehículos y Baja Lógica
         Route::get('vehicles', [ClientPortalController::class, 'vehicles'])->name('vehicles.index');
+        Route::get('vehicles/create', [ClientPortalController::class, 'createVehicle'])->name('vehicles.create');
+        Route::post('vehicles', [ClientPortalController::class, 'storeVehicle'])->name('vehicles.store');
         Route::post('customers/{customer}/upgrade-to-fleet', [ClientSubscriptionController::class, 'upgradeToFleet'])
             ->middleware('throttle:5,1')
             ->name('customers.upgrade-to-fleet');
@@ -153,5 +204,7 @@ Route::middleware('auth')->group(function () {
         Route::put('account', [ClientPortalController::class, 'updateAccount'])->name('account.update');
         Route::put('account/password', [ClientPortalController::class, 'updatePassword'])->name('account.password');
         Route::post('account/deactivate', [ClientPortalController::class, 'deactivateAccount'])->name('account.deactivate');
+        Route::post('account/end-workshop-relationship', [WorkshopCustomerRelationshipController::class, 'endForWorkshop'])
+            ->name('account.workshop-relationship.end');
     });
 });

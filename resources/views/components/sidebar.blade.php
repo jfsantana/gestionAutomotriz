@@ -145,6 +145,12 @@
                         </a>
                     </li>
                     <li class="nav-item mb-1">
+                        <a class="nav-link {{ request()->routeIs('customer-subscription-rates.*') ? 'active fw-bold' : '' }}" href="{{ route('customer-subscription-rates.edit') }}" title="Tarifas de suscripción para clientes">
+                            <x-section-icon name="customer-subscription-rates" class="nav-icon" />
+                            <span class="nav-text">Tarifas de Clientes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-1">
                         <a class="nav-link {{ request()->routeIs('company-subscriptions.*') ? 'active fw-bold' : '' }}" href="{{ route('company-subscriptions.index') }}" title="Control de Vigencia y Bloqueo">
                             <x-section-icon name="company-subscriptions" class="nav-icon" />
                             <span class="nav-text">Suscripciones Activas</span>

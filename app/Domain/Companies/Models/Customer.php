@@ -81,6 +81,11 @@ class Customer extends Model
         return $this->belongsTo(Company::class, 'company_id');
     }
 
+    public function workshopRelationships(): HasMany
+    {
+        return $this->hasMany(CustomerWorkshopRelationship::class, 'customer_id');
+    }
+
     /**
      * Vehículos activos del cliente (excluye dados de baja por el cliente).
      */

@@ -100,7 +100,7 @@ class CustomerController extends Controller
         $hasAlerts = false;
 
         foreach ($customer->vehicles as $veh) {
-            $rem = $reminderService->getVehicleReminder($veh);
+            $rem = $reminderService->getVehicleReminder($veh, $customer->company_id);
             if ($rem) {
                 $vehicleReminders[$veh->id] = $rem;
                 if (in_array($rem['evaluation']['status'], ['overdue', 'due_soon'], true)) {
@@ -140,14 +140,11 @@ class CustomerController extends Controller
             unset($data['company_id']);
         }
 
-        $transferred = isset($data['company_id']) && (int) $data['company_id'] !== (int) $customer->company_id;
         $ownership->update($customer, $data);
 
         return redirect()
             ->route('customers.show', $customer)
-            ->with('success', $transferred
-                ? 'Cliente trasladado con todos sus vehículos e historial. Se desvincularon las referencias a personal y servicios de la empresa anterior.'
-                : "Datos del cliente '{$customer->full_name}' actualizados correctamente.");
+            ->with('success', "Datos del cliente '{$customer->full_name}' actualizados correctamente.");
     }
 
     /**
