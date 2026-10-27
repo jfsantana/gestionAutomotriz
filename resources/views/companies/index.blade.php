@@ -63,11 +63,11 @@
                             <a href="{{ route('companies.edit', $company) }}" class="btn btn-sm btn-outline-primary flex-fill py-2" aria-label="Editar empresa {{ $company->name }}">
                                 Editar
                             </a>
-                            <form method="POST" action="{{ route('companies.destroy', $company) }}" class="flex-fill" onsubmit="return confirm('¿Seguro que deseas eliminar esta empresa?');">
+                            <form method="POST" action="{{ route('companies.toggle-access', $company) }}" class="flex-fill" onsubmit="return confirm('{{ $company->status === 'suspended' ? '¿Reactivar el acceso de esta empresa?' : '¿Suspender el acceso de esta empresa sin borrar sus datos?' }}');">
                                 @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger w-100 py-2" aria-label="Eliminar empresa {{ $company->name }}">
-                                    Eliminar
+                                @method('PATCH')
+                                <button type="submit" class="btn btn-sm {{ $company->status === 'suspended' ? 'btn-outline-success' : 'btn-outline-danger' }} w-100 py-2" aria-label="{{ $company->status === 'suspended' ? 'Reactivar' : 'Suspender' }} empresa {{ $company->name }}">
+                                    {{ $company->status === 'suspended' ? 'Reactivar acceso' : 'Suspender acceso' }}
                                 </button>
                             </form>
                         </div>
@@ -129,11 +129,11 @@
                                         <a href="{{ route('companies.edit', $company) }}" class="btn btn-outline-primary" title="Editar">
                                             Editar
                                         </a>
-                                        <form method="POST" action="{{ route('companies.destroy', $company) }}" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar esta empresa?');">
+                                        <form method="POST" action="{{ route('companies.toggle-access', $company) }}" class="d-inline" onsubmit="return confirm('{{ $company->status === 'suspended' ? '¿Reactivar el acceso de esta empresa?' : '¿Suspender el acceso de esta empresa sin borrar sus datos?' }}');">
                                             @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger">
-                                                Eliminar
+                                            @method('PATCH')
+                                            <button type="submit" class="btn {{ $company->status === 'suspended' ? 'btn-outline-success' : 'btn-outline-danger' }}">
+                                                {{ $company->status === 'suspended' ? 'Reactivar acceso' : 'Suspender acceso' }}
                                             </button>
                                         </form>
                                     </div>

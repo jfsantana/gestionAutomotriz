@@ -64,7 +64,8 @@ Route::middleware('auth')->group(function () {
 
     // Módulos exclusivos para super_admin (Planes, Empresas, Suscripciones)
     Route::middleware('super_admin')->group(function () {
-        Route::resource('companies', CompanyController::class);
+        Route::patch('companies/{company}/toggle-access', [CompanyController::class, 'toggleAccess'])->name('companies.toggle-access');
+        Route::resource('companies', CompanyController::class)->except(['destroy']);
         Route::resource('company-admins', CompanyAdminController::class)->parameters([
             'company-admins' => 'company_admin',
         ]);

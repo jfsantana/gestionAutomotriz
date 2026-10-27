@@ -6,6 +6,7 @@ use App\Domain\Companies\Models\Company;
 use App\Http\Requests\Companies\StoreCompanyRequest;
 use App\Http\Requests\Companies\UpdateCompanyRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class CompanyController extends Controller
@@ -92,9 +93,15 @@ class CompanyController extends Controller
         // En edición, preservar el slug original inmutable
         unset($data['slug']);
 
+        if ($data['status'] === 'suspended' && $company->status !== 'suspended' && $company->hasActiveFleetCustomers()) {
+            return back()
+                ->withInput()
+                ->with('error', 'No se puede suspender este taller porque tiene clientes con una suscripción de flota vigente.');
+        }
+
         if ($request->hasFile('logo')) {
-            if ($company->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($company->logo_path)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($company->logo_path);
+            if ($company->logo_path && Storage::disk('public')->exists($company->logo_path)) {
+                Storage::disk('public')->delete($company->logo_path);
             }
             $data['logo_path'] = $request->file('logo')->store('company_logos', 'public');
         }
@@ -107,15 +114,29 @@ class CompanyController extends Controller
     }
 
     /**
-     * Aplica eliminación lógica (soft delete) a la empresa.
+     * Suspende o reactiva virtualmente el acceso operativo de una empresa.
      */
-    public function destroy(Company $company): RedirectResponse
+    public function toggleAccess(Company $company): RedirectResponse
     {
-        $name = $company->name;
-        $company->delete();
+        if ($company->status !== 'suspended') {
+            if ($company->hasActiveFleetCustomers()) {
+                return back()->with('error', 'No se puede suspender este taller porque tiene clientes con una suscripción de flota vigente.');
+            }
 
-        return redirect()
-            ->route('companies.index')
-            ->with('success', "La empresa '{$name}' ha sido eliminada.");
+            $company->update(['status' => 'suspended']);
+
+            return back()->with('success', "El acceso de '{$company->name}' fue suspendido. Sus datos se conservaron.");
+        }
+
+        $subscription = $company->currentSubscription;
+        if (! $subscription || ! $subscription->isOperable()) {
+            return back()->with('error', 'No se puede reactivar el acceso hasta que la empresa tenga una suscripción vigente y operable.');
+        }
+
+        $company->update([
+            'status' => $subscription->status === 'trial' ? 'trial' : 'active',
+        ]);
+
+        return back()->with('success', "El acceso de '{$company->name}' fue reactivado.");
     }
 }

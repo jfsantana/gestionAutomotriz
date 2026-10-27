@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Billing\Models\CompanySubscription;
+use App\Domain\Billing\Models\SubscriptionPlan;
 use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
@@ -43,6 +45,24 @@ class VehiclePrivacyAndDecommissionTest extends TestCase
             'slug' => 'taller-privacidad-b',
             'status' => 'active',
         ]);
+
+        $plan = SubscriptionPlan::create([
+            'name' => 'Plan de Pruebas de Privacidad',
+            'slug' => 'plan-pruebas-privacidad',
+            'monthly_price' => 50,
+            'yearly_price' => 500,
+            'is_active' => true,
+        ]);
+        foreach ([$this->companyA, $this->companyB] as $company) {
+            CompanySubscription::create([
+                'company_id' => $company->id,
+                'subscription_plan_id' => $plan->id,
+                'status' => 'active',
+                'billing_cycle' => 'monthly',
+                'starts_at' => today(),
+                'ends_at' => today()->addMonth(),
+            ]);
+        }
 
         $this->adminA = User::create([
             'name' => 'Admin Taller A',

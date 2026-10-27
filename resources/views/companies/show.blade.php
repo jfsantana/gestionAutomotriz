@@ -9,6 +9,13 @@
         <p class="text-muted mb-0 small">Ficha institucional del taller / concesionario</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+        <form method="POST" action="{{ route('companies.toggle-access', $company) }}" onsubmit="return confirm('{{ $company->status === 'suspended' ? '¿Reactivar el acceso de esta empresa?' : '¿Suspender el acceso de esta empresa sin borrar sus datos?' }}');">
+            @csrf
+            @method('PATCH')
+            <button type="submit" class="btn btn-sm {{ $company->status === 'suspended' ? 'btn-outline-success' : 'btn-outline-danger' }}">
+                {{ $company->status === 'suspended' ? 'Reactivar acceso' : 'Suspender acceso' }}
+            </button>
+        </form>
         <a href="{{ route('companies.edit', $company) }}" class="btn btn-sm btn-primary">
             Editar Empresa
         </a>
@@ -233,13 +240,7 @@
                 <p class="small text-muted mb-1">Registrado el: <strong>{{ $company->created_at?->format('d/m/Y H:i') ?? '—' }}</strong></p>
                 <p class="small text-muted mb-3">Última actualización: <strong>{{ $company->updated_at?->format('d/m/Y H:i') ?? '—' }}</strong></p>
 
-                <form method="POST" action="{{ route('companies.destroy', $company) }}" onsubmit="return confirm('¿Confirmas eliminar esta empresa del sistema?');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
-                        Eliminar Empresa (Soft Delete)
-                    </button>
-                </form>
+                <p class="small text-muted mb-0">La suspensión del acceso conserva los datos y el historial de la empresa.</p>
             </div>
         </div>
     </div>

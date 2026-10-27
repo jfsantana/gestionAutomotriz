@@ -38,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
             $acceptance = null;
             $globalCompanySubscription = null;
             $globalCompanyCanOperate = false;
+            $globalCompanyAccessSuspended = false;
 
             if (auth()->check() && $policy) {
                 $acceptance = UserPolicyAcceptance::where('user_id', auth()->id())
@@ -48,8 +49,9 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             if ($user && in_array($user->role, ['company_admin', 'mechanic'], true) && $user->company) {
                 $globalCompanySubscription = $user->company->currentSubscription;
+                $globalCompanyAccessSuspended = $user->company->status === 'suspended';
                 $globalCompanyCanOperate = $globalCompanySubscription
-                    ? $globalCompanySubscription->isOperable()
+                    ? $globalCompanySubscription->isOperable() && ! $globalCompanyAccessSuspended
                     : false;
             }
 
@@ -57,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with('userPolicyAcceptance', $acceptance);
             $view->with('globalCompanySubscription', $globalCompanySubscription);
             $view->with('globalCompanyCanOperate', $globalCompanyCanOperate);
+            $view->with('globalCompanyAccessSuspended', $globalCompanyAccessSuspended);
         });
     }
 }

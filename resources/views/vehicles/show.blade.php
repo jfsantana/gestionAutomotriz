@@ -251,6 +251,12 @@
     </div>
 
     <div class="col-lg-4">
+        @if($vehicle->customer?->isFleetPremiumActive())
+            <div class="alert alert-info shadow-sm" role="status">
+                <strong>Cliente con suscripción de flota vigente:</strong>
+                el taller no puede eliminar este vehículo ni su historial. Solo el cliente puede darlo de baja desde su portal.
+            </div>
+        @endif
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="card-title mb-0 fw-semibold">Propietario Asociado</h5>

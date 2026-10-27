@@ -21,14 +21,16 @@ class CompanySubscriptionStatusController extends Controller
         }
 
         $subscription = $company->currentSubscription;
-        $isOperable = $subscription && $subscription->isOperable();
-        $isInGracePeriod = $subscription?->isInGracePeriod() ?? false;
+        $companyAccessSuspended = $company->status === 'suspended';
+        $isOperable = $subscription && $subscription->isOperable() && ! $companyAccessSuspended;
+        $isInGracePeriod = ! $companyAccessSuspended && ($subscription?->isInGracePeriod() ?? false);
         $pendingPaymentRequest = CompanyPaymentRequest::query()
             ->where('company_id', $company->id)
             ->where('status', 'requested')
             ->latest('id')
             ->first();
         $canRequestPayment = $currentUser->role === 'company_admin'
+            && ! $companyAccessSuspended
             && $subscription
             && ! in_array($subscription->status, ['suspended', 'cancelled'], true)
             && $subscription->plan
@@ -37,6 +39,7 @@ class CompanySubscriptionStatusController extends Controller
         return view('company_subscriptions.status', compact(
             'company',
             'subscription',
+            'companyAccessSuspended',
             'isOperable',
             'isInGracePeriod',
             'pendingPaymentRequest',

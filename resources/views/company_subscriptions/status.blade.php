@@ -9,7 +9,11 @@
         <p class="text-muted mb-0 small">Detalles de tu suscripción SaaS y condiciones operativas</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        @if($isOperable)
+        @if($companyAccessSuspended)
+            <a href="#subscription-details" class="btn btn-sm btn-outline-secondary">
+                Ver detalles
+            </a>
+        @elseif($isOperable)
             <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-secondary">
                 &larr; Volver al Dashboard
             </a>
@@ -21,7 +25,15 @@
     </div>
 </div>
 
-@if($isInGracePeriod)
+@if($companyAccessSuspended)
+    <div class="alert alert-danger border-0 shadow-sm p-4 mb-4">
+        <h4 class="alert-heading fw-bold mb-1">&#9888; Acceso del Taller Suspendido</h4>
+        <p class="mb-0">
+            Un superadministrador desactivó temporalmente el acceso operativo de esta empresa. Tus datos y registros se conservan.
+            Contacta a AutoBitácora para solicitar la reactivación.
+        </p>
+    </div>
+@elseif($isInGracePeriod)
     <div class="alert alert-warning border-0 shadow-sm p-4 mb-4">
         <h4 class="alert-heading fw-bold mb-1">Periodo de gracia de 3 días</h4>
         <p class="mb-0">
@@ -59,7 +71,7 @@
 
 <div class="row g-4">
     <div class="col-lg-7">
-        <div class="card shadow-sm border-0 mb-4">
+        <div class="card shadow-sm border-0 mb-4" id="subscription-details">
             <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="card-title mb-0 fw-semibold">Detalles del Plan Actual</h5>
             </div>

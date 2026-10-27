@@ -167,17 +167,31 @@ class VehicleController extends Controller
     {
         $this->authorizeVehicleAccess($request->user(), $vehicle);
 
+        if ($vehicle->customer?->isFleetPremiumActive()) {
+            return back()->with('error', 'Este cliente tiene una suscripción de flota vigente. El taller no puede dar de baja su vehículo ni borrar su historial; solo el cliente puede hacerlo desde su portal.');
+        }
+
         $plate = $vehicle->plate;
         $customerId = $vehicle->customer_id;
+        $orderIds = MaintenanceOrder::withTrashed()
+            ->where('vehicle_id', $vehicle->id)
+            ->pluck('id');
+        $photoPaths = MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)
+            ->pluck('file_path')
+            ->all();
+        if ($vehicle->photo_path) {
+            $photoPaths[] = $vehicle->photo_path;
+        }
 
-        DB::transaction(function () use ($vehicle) {
-            // Eliminar evidencias fotográficas de sus órdenes
-            $orderIds = $vehicle->maintenanceOrders()->pluck('id');
-            if ($orderIds->isNotEmpty()) {
-                MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)->delete();
-                MaintenanceOrder::whereIn('id', $orderIds)->forceDelete();
+        if ($photoPaths !== []) {
+            if (! Storage::disk('public')->delete(array_unique($photoPaths))) {
+                return back()->with('error', 'No se pudieron eliminar todas las fotos del vehículo; no se realizó la baja.');
             }
+        }
 
+        DB::transaction(function () use ($vehicle, $orderIds) {
+            MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)->delete();
+            MaintenanceOrder::withTrashed()->whereIn('id', $orderIds)->forceDelete();
             // Eliminar definitivamente el vehículo para que la placa quede libre para nuevo registro limpio
             $vehicle->forceDelete();
         });
@@ -193,6 +207,10 @@ class VehicleController extends Controller
     public function destroy(Request $request, Vehicle $vehicle): RedirectResponse
     {
         $this->authorizeVehicleAccess($request->user(), $vehicle);
+
+        if ($vehicle->customer?->isFleetPremiumActive()) {
+            return back()->with('error', 'Este cliente tiene una suscripción de flota vigente. El taller no puede eliminar su vehículo; solo el cliente puede hacerlo desde su portal.');
+        }
 
         $plate = $vehicle->plate;
         $customerId = $vehicle->customer_id;

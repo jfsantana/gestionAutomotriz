@@ -4,11 +4,10 @@ namespace App\Services;
 
 use App\Domain\Billing\Models\CompanySubscription;
 use App\Domain\Billing\Models\CompanySubscriptionLog;
-use App\Domain\Billing\Models\SubscriptionPlan;
 use App\Domain\Companies\Models\Company;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SubscriptionService
 {
@@ -18,6 +17,18 @@ class SubscriptionService
     public function assignSubscription(array $data, ?User $performer = null): CompanySubscription
     {
         return DB::transaction(function () use ($data, $performer) {
+            $company = Company::findOrFail($data['company_id']);
+            $newSubscription = new CompanySubscription($data);
+            if (
+                $company->hasActiveFleetCustomers()
+                && $company->hasActiveSubscription()
+                && ! $newSubscription->isOperable()
+            ) {
+                throw ValidationException::withMessages([
+                    'status' => 'No se puede bloquear esta empresa porque tiene clientes con una suscripción de flota vigente.',
+                ]);
+            }
+
             $data['created_by'] = $performer?->id;
             $data['updated_by'] = $performer?->id;
 
@@ -48,6 +59,19 @@ class SubscriptionService
         return DB::transaction(function () use ($subscription, $data, $performer) {
             $previousStatus = $subscription->status;
             $newStatus = $data['status'];
+            $company = $subscription->company;
+            $updatedSubscription = clone $subscription;
+            $updatedSubscription->fill($data);
+
+            if (
+                $company?->hasActiveFleetCustomers()
+                && $subscription->isOperable()
+                && ! $updatedSubscription->isOperable()
+            ) {
+                throw ValidationException::withMessages([
+                    'status' => 'No se puede bloquear esta empresa porque tiene clientes con una suscripción de flota vigente.',
+                ]);
+            }
 
             $action = 'updated';
             if ($previousStatus !== $newStatus) {
@@ -106,6 +130,7 @@ class SubscriptionService
             $sub = $comp->currentSubscription;
             if (! $sub) {
                 $expired++;
+
                 continue;
             }
 

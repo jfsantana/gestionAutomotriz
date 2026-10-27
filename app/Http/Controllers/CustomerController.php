@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Domain\Companies\Models\Company;
 use App\Domain\Companies\Models\Customer;
+use App\Domain\Maintenance\Models\MaintenanceOrder;
+use App\Domain\Maintenance\Models\MaintenanceOrderPhoto;
+use App\Domain\Vehicles\Models\Vehicle;
 use App\Http\Requests\Customers\StoreCustomerRequest;
 use App\Http\Requests\Customers\UpdateCustomerRequest;
 use App\Services\CustomerOwnershipService;
 use App\Services\MaintenanceReminderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class CustomerController extends Controller
@@ -146,18 +151,55 @@ class CustomerController extends Controller
     }
 
     /**
-     * Eliminación lógica del cliente (Soft Delete).
+     * Da de baja al cliente y elimina sus vehículos e historial si no tiene una flota premium vigente.
      */
     public function destroy(Request $request, Customer $customer): RedirectResponse
     {
         $this->authorizeCustomerAccess($request->user(), $customer);
 
+        if ($customer->isFleetPremiumActive()) {
+            return back()->with('error', 'Este cliente tiene una suscripción de flota vigente. El taller no puede eliminar su cuenta, sus vehículos ni su historial; solo el cliente puede dar de baja su cuenta desde el portal.');
+        }
+
         $name = $customer->full_name;
-        $customer->delete();
+        $vehicleIds = Vehicle::withTrashed()
+            ->where('customer_id', $customer->id)
+            ->pluck('id');
+        $orderIds = MaintenanceOrder::withTrashed()
+            ->where('customer_id', $customer->id)
+            ->pluck('id');
+        $photoPaths = MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)
+            ->pluck('file_path')
+            ->all();
+        $vehiclePhotoPaths = Vehicle::withTrashed()
+            ->whereIn('id', $vehicleIds)
+            ->whereNotNull('photo_path')
+            ->pluck('photo_path')
+            ->all();
+        $photoPaths = array_values(array_unique(array_merge($photoPaths, $vehiclePhotoPaths)));
+
+        if ($photoPaths !== []) {
+            if (! Storage::disk('public')->delete($photoPaths)) {
+                return back()->with('error', 'No se pudieron eliminar todas las fotos del cliente; no se realizó la baja.');
+            }
+        }
+
+        DB::transaction(function () use ($customer, $vehicleIds, $orderIds): void {
+            MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)->delete();
+            MaintenanceOrder::withTrashed()->whereIn('id', $orderIds)->forceDelete();
+            Vehicle::withTrashed()->whereIn('id', $vehicleIds)->forceDelete();
+
+            $customer->user?->update([
+                'account_status' => 'DEACTIVATED',
+                'is_active' => false,
+            ]);
+
+            $customer->delete();
+        });
 
         return redirect()
             ->route('customers.index')
-            ->with('success', "Cliente '{$name}' eliminado del sistema.");
+            ->with('success', "Cliente '{$name}' dado de baja. Se eliminaron sus vehículos y su historial, y se desactivó su acceso al portal.");
     }
 
     /**

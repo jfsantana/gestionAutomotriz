@@ -128,6 +128,20 @@ class Company extends Model
     }
 
     /**
+     * Determina si algún cliente de la empresa tiene una suscripción de flota vigente.
+     */
+    public function hasActiveFleetCustomers(): bool
+    {
+        return $this->customers()
+            ->where('is_fleet_premium', true)
+            ->where(function ($query): void {
+                $query->whereNull('fleet_expires_at')
+                    ->orWhere('fleet_expires_at', '>', now());
+            })
+            ->exists();
+    }
+
+    /**
      * Genera un slug único para la empresa a partir de su nombre o valor base.
      */
     public static function generateUniqueSlug(string $name, ?int $ignoreId = null): string
@@ -144,4 +158,3 @@ class Company extends Model
         return $slug;
     }
 }
-

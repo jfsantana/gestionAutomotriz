@@ -15,6 +15,13 @@
         <a href="{{ route('customers.edit', $customer) }}" class="btn btn-sm btn-outline-primary">
             Editar Cliente
         </a>
+        <form method="POST" action="{{ route('customers.destroy', $customer) }}" onsubmit="return confirm('¿Confirmas dar de baja este cliente? Se eliminarán permanentemente sus vehículos y su historial de mantenimiento.');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                Dar de Baja Cliente
+            </button>
+        </form>
         <a href="{{ route('customers.index') }}" class="btn btn-sm btn-outline-secondary">
             &larr; Volver a Clientes
         </a>
@@ -22,6 +29,15 @@
 </div>
 
 <div class="row g-4 mb-4">
+    @if($customer->isFleetPremiumActive())
+        <div class="col-12">
+            <div class="alert alert-info mb-0" role="status">
+                <strong>Cliente con suscripción de flota vigente:</strong>
+                el taller no puede eliminar esta cuenta, sus vehículos ni su historial. Solo el cliente puede dar de baja su cuenta desde su portal.
+            </div>
+        </div>
+    @endif
+
     {{-- Alerta Global de Mantenimientos del Cliente --}}
     @if(isset($hasAlerts) && $hasAlerts)
         <div class="col-12">

@@ -21,11 +21,16 @@ class EnsureCompanySubscriptionIsActive
         }
 
         // 2. Si no tiene empresa asociada, continuar
-        if (! $user->company_id || ! $user->company) {
+        $company = $user->company;
+        if (! $user->company_id || ! $company) {
             return $next($request);
         }
 
-        $subscription = $user->company->currentSubscription;
+        if ($company->status === 'suspended') {
+            return redirect()->route('subscription.status');
+        }
+
+        $subscription = $company->currentSubscription;
 
         // Una empresa sin una suscripción asignada no tiene acceso operativo.
         if (! $subscription) {

@@ -12,6 +12,7 @@ class CompanyManagementTest extends TestCase
     use RefreshDatabase;
 
     protected User $superAdmin;
+
     protected User $mechanic;
 
     protected function setUp(): void
@@ -153,9 +154,9 @@ class CompanyManagementTest extends TestCase
     }
 
     /**
-     * Valida que el super_admin pueda aplicar soft delete a una empresa.
+     * Valida que la empresa no pueda eliminarse por la ruta anterior.
      */
-    public function test_super_admin_can_delete_a_company(): void
+    public function test_super_admin_cannot_delete_a_company(): void
     {
         $company = Company::create([
             'name' => 'Taller A Eliminar',
@@ -165,7 +166,7 @@ class CompanyManagementTest extends TestCase
 
         $response = $this->actingAs($this->superAdmin)->delete("/companies/{$company->id}");
 
-        $response->assertRedirect(route('companies.index'));
-        $this->assertSoftDeleted('companies', ['id' => $company->id]);
+        $response->assertMethodNotAllowed();
+        $this->assertModelExists($company);
     }
 }

@@ -1,5 +1,13 @@
 @if(! request()->routeIs('subscription.status') && $globalCompanySubscription)
-    @if($globalCompanySubscription->isInGracePeriod())
+    @if($globalCompanyAccessSuspended)
+        <div class="alert alert-danger shadow-sm border-0 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4" role="alert">
+            <div>
+                <strong>&#9888; Acceso del taller suspendido:</strong>
+                los módulos operativos están bloqueados. Tus datos se conservan; contacta a AutoBitácora para solicitar la reactivación.
+            </div>
+            <a href="{{ route('subscription.status') }}" class="btn btn-sm btn-danger fw-semibold">Ver estado de la cuenta</a>
+        </div>
+    @elseif($globalCompanySubscription->isInGracePeriod())
         <div class="alert alert-warning shadow-sm border-0 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4" role="status">
             <div>
                 <strong>Periodo de gracia:</strong>
@@ -28,7 +36,13 @@
     @endif
 @elseif(! request()->routeIs('subscription.status') && auth()->user()?->company && ! $globalCompanyCanOperate)
     <div class="alert alert-danger shadow-sm border-0 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4" role="alert">
-        <div><strong>&#9888; Suscripción inactiva:</strong> los módulos operativos están bloqueados. Contacta a AutoBitácora para asignar o reactivar un plan.</div>
+        <div>
+            @if($globalCompanyAccessSuspended)
+                <strong>&#9888; Acceso del taller suspendido:</strong> los módulos operativos están bloqueados. Contacta a AutoBitácora para solicitar la reactivación.
+            @else
+                <strong>&#9888; Suscripción inactiva:</strong> los módulos operativos están bloqueados. Contacta a AutoBitácora para asignar o reactivar un plan.
+            @endif
+        </div>
         <a href="{{ route('subscription.status') }}" class="btn btn-sm btn-danger fw-semibold">Ver suscripción</a>
     </div>
 @endif
