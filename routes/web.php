@@ -28,7 +28,9 @@ use App\Http\Controllers\WorkshopCustomerRelationshipController;
 use App\Http\Middleware\EnsureCustomerEmailVerified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,7 +79,28 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('portal.dashboard');
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        if (config('mail.default') === 'log') {
+            Log::warning('No se reenvió el correo de verificación porque el transporte de correo solo registra mensajes.', [
+                'user_id' => $request->user()->id,
+            ]);
+
+            return back()->withErrors([
+                'email' => 'El servidor no está configurado para enviar correos. Contacta al administrador.',
+            ]);
+        }
+
+        try {
+            $request->user()->sendEmailVerificationNotification();
+        } catch (TransportExceptionInterface $exception) {
+            Log::error('No se pudo reenviar el correo de verificación.', [
+                'user_id' => $request->user()->id,
+                'exception' => $exception,
+            ]);
+
+            return back()->withErrors([
+                'email' => 'No se pudo enviar el correo de verificación. Inténtalo nuevamente en unos minutos.',
+            ]);
+        }
 
         return back()->with('status', 'Te enviamos un nuevo enlace de verificación.');
     })->middleware('throttle:6,1')->name('verification.send');

@@ -16,6 +16,11 @@ class RequireWorkshopUser
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+
+        if ($user?->role === 'customer') {
+            return redirect()->route('portal.dashboard');
+        }
+
         abort_unless(
             $user && ($user->role === 'super_admin'
                 || (in_array($user->role, ['company_admin', 'mechanic'], true) && $user->company_id && $user->company)),

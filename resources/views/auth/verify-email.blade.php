@@ -8,6 +8,12 @@
         <h3 class="fw-bold text-dark mb-3">Verifica tu correo</h3>
         <p class="text-muted">Enviamos un enlace a <strong>{{ auth()->user()->email }}</strong>. Confirma tu dirección para acceder al portal.</p>
 
+        @if ($errors->any())
+            <div class="alert alert-danger small" role="alert">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
         @if (session('status'))
             <div class="alert alert-success small">{{ session('status') }}</div>
         @endif

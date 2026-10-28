@@ -81,6 +81,32 @@ class GoogleAuthControllerTest extends TestCase
         $this->assertNotNull($user->fresh()->last_login_at);
     }
 
+    public function test_google_customer_is_redirected_to_portal_from_workshop_dashboard(): void
+    {
+        $this->configureGoogle();
+        $customer = Customer::create([
+            'full_name' => 'Cliente Google',
+            'email' => 'cliente.google@example.test',
+        ]);
+        $user = User::factory()->create([
+            'email' => $customer->email,
+            'role' => 'customer',
+            'customer_id' => $customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+        $this->mockGoogleUser($user->email, true);
+
+        $this->withSession(['url.intended' => route('dashboard')])
+            ->get(route('login.google.callback'))
+            ->assertRedirect(route('dashboard'));
+
+        $this->get(route('dashboard'))
+            ->assertRedirect(route('portal.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_verified_google_company_admin_email_authenticates_to_company_dashboard(): void
     {
         $this->configureGoogle();

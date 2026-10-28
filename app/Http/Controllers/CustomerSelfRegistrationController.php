@@ -10,9 +10,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class CustomerSelfRegistrationController extends Controller
 {
@@ -66,7 +68,33 @@ class CustomerSelfRegistrationController extends Controller
             ]);
         });
 
-        event(new Registered($user));
+        if (config('mail.default') === 'log') {
+            Log::warning('No se envió el correo de verificación porque el transporte de correo solo registra mensajes.', [
+                'user_id' => $user->id,
+            ]);
+
+            Auth::login($user);
+
+            return redirect()->route('verification.notice')->withErrors([
+                'email' => 'Tu cuenta se creó, pero el servidor solo registra los correos y no los envía. Contacta al administrador para configurar el envío.',
+            ]);
+        }
+
+        try {
+            event(new Registered($user));
+        } catch (TransportExceptionInterface $exception) {
+            Log::error('No se pudo enviar el correo de verificación al registrar al cliente.', [
+                'user_id' => $user->id,
+                'exception' => $exception,
+            ]);
+
+            Auth::login($user);
+
+            return redirect()->route('verification.notice')->withErrors([
+                'email' => 'Tu cuenta se creó, pero no se pudo enviar el correo de verificación. Intenta reenviarlo en unos minutos; si el problema continúa, contacta al administrador.',
+            ]);
+        }
+
         Auth::login($user);
 
         return redirect()->route('verification.notice')

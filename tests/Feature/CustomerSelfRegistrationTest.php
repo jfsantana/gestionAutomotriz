@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Domain\Companies\Models\Customer;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
 class CustomerSelfRegistrationTest extends TestCase
@@ -42,6 +44,17 @@ class CustomerSelfRegistrationTest extends TestCase
         $this->assertTrue($customer->hasFleetTrialActive());
         $this->assertSame($customer->id, $user->customer_id);
         Notification::assertSentTo($user, VerifyEmail::class);
+        $this->assertSame('es', $user->preferredLocale());
+
+        $originalLocale = app()->getLocale();
+        app()->setLocale($user->preferredLocale());
+        $verificationMessage = (new VerifyEmail)->toMail($user);
+        app()->setLocale($originalLocale);
+
+        $this->assertSame('Verifica tu correo electrónico', $verificationMessage->subject);
+        $this->assertSame('Haz clic en el botón de abajo para verificar tu dirección de correo electrónico.', $verificationMessage->introLines[0]);
+        $this->assertSame('Verificar correo electrónico', $verificationMessage->actionText);
+        $this->assertSame('Si no creaste una cuenta, no es necesario realizar ninguna otra acción.', $verificationMessage->outroLines[0]);
 
         $this->get(route('portal.vehicles.index'))
             ->assertRedirect(route('verification.notice'));
@@ -61,6 +74,89 @@ class CustomerSelfRegistrationTest extends TestCase
 
         $this->assertNotNull($user->fresh()->email_verified_at);
         $this->assertFalse($user->fresh()->email_verification_required);
+    }
+
+    public function test_registration_shows_a_spanish_message_when_email_is_already_registered(): void
+    {
+        Http::fake([
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true]),
+        ]);
+        User::factory()->create(['email' => 'existente@example.test']);
+
+        $this->post(route('customer.register.store'), [
+            'full_name' => 'Cliente Independiente',
+            'email' => 'existente@example.test',
+            'customer_type' => 'individual',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ])->assertSessionHasErrors([
+            'email' => 'El campo correo electrónico ya está en uso.',
+        ]);
+    }
+
+    public function test_registration_warns_when_email_is_configured_to_be_logged_instead_of_sent(): void
+    {
+        config(['mail.default' => 'log']);
+        Notification::fake();
+        Http::fake([
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true]),
+        ]);
+
+        $this->post(route('customer.register.store'), [
+            'full_name' => 'Cliente Independiente',
+            'email' => 'correo.registrado@example.test',
+            'customer_type' => 'individual',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ])->assertRedirect(route('verification.notice'))
+            ->assertSessionHasErrors([
+                'email' => 'Tu cuenta se creó, pero el servidor solo registra los correos y no los envía. Contacta al administrador para configurar el envío.',
+            ]);
+
+        $this->assertAuthenticated();
+        Notification::assertNothingSent();
+    }
+
+    public function test_registration_keeps_the_account_and_reports_a_mail_transport_failure_in_spanish(): void
+    {
+        Http::fake([
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true]),
+        ]);
+        $this->mock(Dispatcher::class)
+            ->shouldReceive('send')
+            ->once()
+            ->andThrow(new TransportException('SMTP unavailable'));
+
+        $this->followingRedirects()
+            ->post(route('customer.register.store'), [
+                'full_name' => 'Cliente Independiente',
+                'email' => 'correo.sin.envio@example.test',
+                'customer_type' => 'individual',
+                'password' => 'secure-password',
+                'password_confirmation' => 'secure-password',
+            ])->assertOk()
+            ->assertSee('Tu cuenta se creó, pero no se pudo enviar el correo de verificación.');
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'correo.sin.envio@example.test',
+            'role' => 'customer',
+        ]);
+    }
+
+    public function test_verification_resend_warns_when_email_is_configured_to_be_logged_instead_of_sent(): void
+    {
+        config(['mail.default' => 'log']);
+        Notification::fake();
+        $user = User::factory()->create(['email_verified_at' => null]);
+
+        $this->actingAs($user)
+            ->post(route('verification.send'))
+            ->assertSessionHasErrors([
+                'email' => 'El servidor no está configurado para enviar correos. Contacta al administrador.',
+            ]);
+
+        Notification::assertNothingSent();
     }
 
     public function test_orphan_customer_can_register_only_three_vehicles_during_the_trial(): void
