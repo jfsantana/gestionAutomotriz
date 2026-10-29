@@ -213,6 +213,8 @@ Route::middleware('auth')->group(function () {
             ->middleware('throttle:5,1')
             ->name('customers.upgrade-to-fleet');
         Route::get('vehicles/{vehicle}', [ClientPortalController::class, 'vehicleShow'])->name('vehicles.show');
+        Route::get('vehicles/{vehicle}/edit', [ClientPortalController::class, 'editVehicle'])->name('vehicles.edit');
+        Route::put('vehicles/{vehicle}', [ClientPortalController::class, 'updateVehicle'])->name('vehicles.update');
         Route::post('vehicles/{vehicle}/decommission', [ClientPortalController::class, 'decommissionVehicle'])->name('vehicles.decommission');
 
         // 3. Historial de Mantenimientos

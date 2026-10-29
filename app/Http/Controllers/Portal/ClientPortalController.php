@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Domain\Companies\Models\Customer;
 use App\Domain\Maintenance\Models\MaintenanceOrder;
+use App\Domain\Maintenance\Models\MaintenanceOrderPhoto;
 use App\Domain\Vehicles\Enums\VehicleType;
 use App\Domain\Vehicles\Models\Vehicle;
 use App\Domain\Vehicles\Models\VehicleBrand;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -170,7 +172,7 @@ class ClientPortalController extends Controller
                 ]);
             }
 
-            if (Vehicle::withTrashed()->where('plate', $data['plate'])->exists()) {
+            if (Vehicle::where('plate', $data['plate'])->exists()) {
                 throw ValidationException::withMessages([
                     'plate' => 'Este vehículo ya se encuentra registrado en la plataforma. Verifica los datos antes de continuar.',
                 ]);
@@ -210,7 +212,81 @@ class ClientPortalController extends Controller
     }
 
     /**
-     * Baja de vehículo por el cliente: Desvincula y elimina el historial para nuevo registro limpio.
+     * Formulario para que el cliente edite los datos de su vehículo.
+     */
+    public function editVehicle(Request $request, Vehicle $vehicle): View|RedirectResponse
+    {
+        $accessRedirect = $this->redirectIfFleetAccessExpired($request->user()->customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
+        $this->authorizeCustomerVehicle($request->user(), $vehicle);
+
+        $brands = VehicleBrand::query()->orderBy('vehicle_type')->orderBy('name')->get(['name', 'vehicle_type']);
+        $vehicleTypes = VehicleType::options();
+
+        return view('portal.vehicles.edit', compact('vehicle', 'brands', 'vehicleTypes'));
+    }
+
+    /**
+     * Actualiza los datos del vehículo propio del cliente.
+     */
+    public function updateVehicle(Request $request, Vehicle $vehicle): RedirectResponse
+    {
+        $customer = $request->user()->customer;
+        abort_unless($customer, 404);
+        $accessRedirect = $this->redirectIfFleetAccessExpired($customer);
+        if ($accessRedirect) {
+            return $accessRedirect;
+        }
+
+        $this->authorizeCustomerVehicle($request->user(), $vehicle);
+
+        $request->merge(['plate' => mb_strtoupper(trim((string) $request->input('plate')))]);
+        $data = $request->validate([
+            'plate' => ['required', 'string', 'max:30'],
+            'vin' => ['nullable', 'string', 'max:50'],
+            'vehicle_type' => ['required', Rule::in(array_keys(VehicleType::options()))],
+            'make' => [
+                'required',
+                'string',
+                'max:80',
+                Rule::exists('vehicle_brands', 'name')
+                    ->where(fn ($query) => $query->where('vehicle_type', $request->input('vehicle_type'))),
+            ],
+            'model' => ['required', 'string', 'max:80'],
+            'year' => ['nullable', 'integer', 'min:1900', 'max:'.(date('Y') + 2)],
+            'color' => ['nullable', 'string', 'max:50'],
+            'current_mileage' => ['required', 'integer', 'min:0'],
+            'fuel_type' => ['nullable', 'string', 'max:30'],
+            'photo' => ['nullable', 'image', 'max:5120'], // Máximo 5MB
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if (Vehicle::where('plate', $data['plate'])->whereKeyNot($vehicle->id)->exists()) {
+            throw ValidationException::withMessages([
+                'plate' => 'Este vehículo ya se encuentra registrado en la plataforma. Verifica los datos antes de continuar.',
+            ]);
+        }
+
+        if ($request->hasFile('photo')) {
+            if ($vehicle->photo_path && Storage::disk('public')->exists($vehicle->photo_path)) {
+                Storage::disk('public')->delete($vehicle->photo_path);
+            }
+            $data['photo_path'] = $request->file('photo')
+                ->store('vehicles/'.($customer->company_id ?? 'independientes'), 'public');
+        }
+
+        $vehicle->update($data);
+
+        return redirect()->route('portal.vehicles.show', $vehicle)
+            ->with('success', "Vehículo con placa '{$vehicle->plate}' actualizado correctamente.");
+    }
+
+    /**
+     * Baja de vehículo por el cliente: elimina por completo el historial operativo
+     * y las órdenes asociadas para permitir que la placa quede libre sin fuga de datos.
      */
     public function decommissionVehicle(Request $request, Vehicle $vehicle): RedirectResponse
     {
@@ -222,16 +298,31 @@ class ClientPortalController extends Controller
         $this->authorizeCustomerVehicle($request->user(), $vehicle);
 
         $plate = $vehicle->plate;
+        $orderIds = MaintenanceOrder::withTrashed()
+            ->where('vehicle_id', $vehicle->id)
+            ->pluck('id');
+        $photoPaths = MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)
+            ->pluck('file_path')
+            ->all();
+        if ($vehicle->photo_path) {
+            $photoPaths[] = $vehicle->photo_path;
+        }
 
-        // Desvinculación y baja lógica del vehículo
-        $vehicle->update(['customer_status' => 'DECOMMISSIONED']);
+        if ($photoPaths !== []) {
+            if (! Storage::disk('public')->delete(array_unique($photoPaths))) {
+                return back()->with('error', 'No se pudieron eliminar todas las fotos del vehículo; no se realizó la baja.');
+            }
+        }
 
-        // Se marcan/limpian las órdenes operativas para que el futuro comprador no herede datos privados
-        $vehicle->maintenanceOrders()->delete();
-        $vehicle->delete(); // Soft delete del vehículo
+        DB::transaction(function () use ($vehicle, $orderIds) {
+            MaintenanceOrderPhoto::whereIn('maintenance_order_id', $orderIds)->delete();
+            MaintenanceOrder::withTrashed()->whereIn('id', $orderIds)->forceDelete();
+            // Eliminar definitivamente el vehículo para que la placa quede libre para nuevo registro limpio
+            $vehicle->forceDelete();
+        });
 
         return redirect()->route('portal.vehicles.index')
-            ->with('info', "El vehículo con placa '{$plate}' fue dado de baja de tu cuenta. Ha quedado liberado de tu perfil sin transferir tu historial.");
+            ->with('info', "El vehículo con placa '{$plate}' fue dado de baja de tu cuenta. Todo su historial previo fue eliminado para garantizar privacidad y la placa ha quedado liberada para un nuevo registro.");
     }
 
     /**

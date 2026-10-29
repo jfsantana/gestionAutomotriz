@@ -377,8 +377,8 @@ class ClientPortalCompleteFlowTest extends TestCase
         $response = $this->actingAs($user)->post("/portal/vehicles/{$this->vehicle->id}/decommission");
 
         $response->assertRedirect(route('portal.vehicles.index'));
-        $this->assertEquals('DECOMMISSIONED', $this->vehicle->fresh()->customer_status);
-        $this->assertSoftDeleted('vehicles', ['id' => $this->vehicle->id]);
+        // La baja elimina definitivamente el vehículo para liberar la placa para un nuevo registro
+        $this->assertDatabaseMissing('vehicles', ['id' => $this->vehicle->id]);
     }
 
     private function createPortalCustomerUser(): User

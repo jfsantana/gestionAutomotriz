@@ -248,4 +248,113 @@ class CustomerSelfRegistrationTest extends TestCase
         $this->assertNotNull($vehicle->photo_path);
         Storage::disk('public')->assertExists($vehicle->photo_path);
     }
+
+    public function test_orphan_customer_can_update_their_vehicle(): void
+    {
+        Storage::fake('public');
+
+        $customer = Customer::create([
+            'full_name' => 'Propietario Independiente',
+            'email' => 'propietario@example.test',
+            'customer_type' => 'individual',
+            'fleet_trial_started_at' => now(),
+        ]);
+        $user = User::create([
+            'name' => $customer->full_name,
+            'username' => 'propietario',
+            'email' => $customer->email,
+            'password' => 'secure-password',
+            'role' => 'customer',
+            'customer_id' => $customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+        $user->markEmailAsVerified();
+
+        $this->actingAs($user)
+            ->post(route('portal.vehicles.store'), [
+                'plate' => 'ORP020',
+                'vehicle_type' => 'carro',
+                'make' => 'Toyota',
+                'model' => 'Corolla',
+                'current_mileage' => 100,
+            ])
+            ->assertRedirect();
+
+        $vehicle = $customer->vehicles()->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('portal.vehicles.update', $vehicle), [
+                'plate' => 'orp021',
+                'vehicle_type' => 'carro',
+                'make' => 'Toyota',
+                'model' => 'Corolla Cross',
+                'current_mileage' => 250,
+                'fuel_type' => 'electrico',
+                'photo' => UploadedFile::fake()->image('nueva-foto.png'),
+            ])
+            ->assertRedirect(route('portal.vehicles.show', $vehicle));
+
+        $vehicle->refresh();
+
+        $this->assertSame('ORP021', $vehicle->plate);
+        $this->assertSame('Corolla Cross', $vehicle->model);
+        $this->assertSame('electrico', $vehicle->fuel_type);
+        $this->assertSame(250, $vehicle->current_mileage);
+        $this->assertNotNull($vehicle->photo_path);
+        Storage::disk('public')->assertExists($vehicle->photo_path);
+    }
+
+    public function test_orphan_customer_can_register_the_same_plate_again_after_decommission(): void
+    {
+        Storage::fake('public');
+
+        $customer = Customer::create([
+            'full_name' => 'Propietario Independiente',
+            'email' => 'propietario@example.test',
+            'customer_type' => 'individual',
+            'fleet_trial_started_at' => now(),
+        ]);
+        $user = User::create([
+            'name' => $customer->full_name,
+            'username' => 'propietario',
+            'email' => $customer->email,
+            'password' => 'secure-password',
+            'role' => 'customer',
+            'customer_id' => $customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+        $user->markEmailAsVerified();
+
+        $payload = [
+            'vehicle_type' => 'carro',
+            'make' => 'Toyota',
+            'model' => 'Corolla',
+            'current_mileage' => 100,
+        ];
+
+        $this->actingAs($user)
+            ->post(route('portal.vehicles.store'), $payload + ['plate' => 'ORP030'])
+            ->assertRedirect();
+
+        $vehicle = $customer->vehicles()->firstOrFail();
+
+        $this->actingAs($user)
+            ->post(route('portal.vehicles.decommission', $vehicle))
+            ->assertRedirect(route('portal.vehicles.index'));
+
+        $this->assertSame(0, $customer->fresh()->vehicles()->count());
+        $this->assertDatabaseMissing('vehicles', ['plate' => 'ORP030']);
+
+        $this->actingAs($user)
+            ->post(route('portal.vehicles.store'), $payload + ['plate' => 'ORP030'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('vehicles', [
+            'customer_id' => $customer->id,
+            'plate' => 'ORP030',
+            'deleted_at' => null,
+        ]);
+    }
 }

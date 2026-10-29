@@ -132,7 +132,8 @@ class PremiumCustomerDeactivationTest extends TestCase
             ->assertRedirect(route('portal.vehicles.index'))
             ->assertSessionHas('info');
 
-        $this->assertSoftDeleted('vehicles', ['id' => $vehicle->id]);
+        // La baja elimina definitivamente el vehículo para liberar la placa para un nuevo registro
+        $this->assertDatabaseMissing('vehicles', ['id' => $vehicle->id]);
         $this->assertDatabaseHas('customers', ['id' => $customer->id, 'deleted_at' => null]);
     }
 

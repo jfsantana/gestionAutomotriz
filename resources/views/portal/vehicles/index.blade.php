@@ -65,10 +65,15 @@
                             <li>Mantenimientos: <strong>{{ $veh->maintenance_orders_count }} registros</strong></li>
                         </ul>
                     </div>
-                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
-                        <a href="{{ route('portal.vehicles.show', $veh) }}" class="btn btn-sm btn-primary">
-                            Ver Ficha & Historial
-                        </a>
+                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center gap-2">
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('portal.vehicles.show', $veh) }}" class="btn btn-sm btn-primary">
+                                Ver Ficha & Historial
+                            </a>
+                            <a href="{{ route('portal.vehicles.edit', $veh) }}" class="btn btn-sm btn-outline-primary">
+                                Editar
+                            </a>
+                        </div>
                         {{-- Botón Dar de Baja por el Cliente con confirmación --}}
                         <form method="POST" action="{{ route('portal.vehicles.decommission', $veh) }}" onsubmit="return confirm('¿ATENCIÓN: Confirmas dar de baja este vehículo de tu cuenta? Se desvinculará de tu perfil y se limpiará su historial visible para evitar transferencia de datos a futuros compradores.');">
                             @csrf

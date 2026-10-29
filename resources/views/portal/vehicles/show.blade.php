@@ -9,6 +9,9 @@
         <p class="text-muted mb-0 small">Placa: <strong class="badge bg-dark">{{ $vehicle->plate }}</strong></p>
     </div>
     <div class="btn-toolbar gap-2">
+        <a href="{{ route('portal.vehicles.edit', $vehicle) }}" class="btn btn-sm btn-primary">
+            Editar Vehículo
+        </a>
         <a href="{{ route('portal.vehicles.index') }}" class="btn btn-sm btn-outline-secondary">
             &larr; Volver a Mis Vehículos
         </a>
