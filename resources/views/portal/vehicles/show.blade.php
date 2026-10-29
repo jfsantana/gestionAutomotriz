@@ -81,7 +81,8 @@
                 @if($vehicle->maintenanceOrders->isEmpty())
                     <p class="text-muted text-center py-5 mb-0 small">No hay órdenes ni mantenimientos registrados para este vehículo.</p>
                 @else
-                    <div class="table-responsive">
+                    {{-- VISTA DE TABLA: SOLO ESCRITORIO --}}
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-hover align-middle mb-0 small">
                             <thead class="table-light">
                                 <tr>
@@ -115,6 +116,28 @@
                                 @endforeach
                             </tbody>
                         </table>
+                    </div>
+
+                    {{-- VISTA DE CARDS: SOLO MÓVIL/TABLET --}}
+                    <div class="d-md-none">
+                        @foreach($vehicle->maintenanceOrders as $ord)
+                            <div class="border-bottom p-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                    <div>
+                                        <div class="fw-bold text-dark small">{{ $ord->service_name_snapshot }}</div>
+                                        <small class="text-muted">{{ $ord->service_date?->format('d/m/Y') }} &bull; {{ number_format($ord->current_mileage) }} km</small>
+                                    </div>
+                                    @if($ord->origin === 'workshop')
+                                        <span class="badge bg-success flex-shrink-0">&#10003; Taller</span>
+                                    @else
+                                        <span class="badge bg-secondary flex-shrink-0">👤 Personal</span>
+                                    @endif
+                                </div>
+                                <small class="text-secondary d-block">
+                                    {{ Str::limit($ord->technical_notes ?: $ord->customer_notes ?: 'Sin notas', 80) }}
+                                </small>
+                            </div>
+                        @endforeach
                     </div>
                 @endif
             </div>
