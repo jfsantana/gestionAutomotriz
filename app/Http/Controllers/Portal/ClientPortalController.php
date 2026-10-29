@@ -150,8 +150,14 @@ class ClientPortalController extends Controller
             'color' => ['nullable', 'string', 'max:50'],
             'current_mileage' => ['required', 'integer', 'min:0'],
             'fuel_type' => ['nullable', 'string', 'max:30'],
+            'photo' => ['nullable', 'image', 'max:5120'], // Máximo 5MB
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        if ($request->hasFile('photo')) {
+            $data['photo_path'] = $request->file('photo')
+                ->store('vehicles/'.($customer->company_id ?? 'independientes'), 'public');
+        }
 
         $vehicle = DB::transaction(function () use ($customer, $data): Vehicle {
             $lockedCustomer = Customer::query()->lockForUpdate()->findOrFail($customer->id);

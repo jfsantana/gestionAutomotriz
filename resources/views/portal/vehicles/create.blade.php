@@ -23,7 +23,7 @@
 
 <div class="card shadow-sm border-0">
     <div class="card-body p-4">
-        <form method="POST" action="{{ route('portal.vehicles.store') }}">
+        <form method="POST" action="{{ route('portal.vehicles.store') }}" enctype="multipart/form-data">
             @csrf
             <div class="row g-3">
                 <div class="col-md-6">
@@ -71,7 +71,20 @@
                 </div>
                 <div class="col-md-6">
                     <label for="fuel_type" class="form-label">Combustible</label>
-                    <input id="fuel_type" name="fuel_type" value="{{ old('fuel_type') }}" class="form-control" maxlength="30">
+                    <select id="fuel_type" name="fuel_type" class="form-select">
+                        <option value="">-- No especificado --</option>
+                        <option value="gasolina" @selected(old('fuel_type') === 'gasolina')>Gasolina</option>
+                        <option value="diesel" @selected(old('fuel_type') === 'diesel')>Diésel (Gasoil)</option>
+                        <option value="glp" @selected(old('fuel_type') === 'glp')>GLP</option>
+                        <option value="gnc" @selected(old('fuel_type') === 'gnc')>GNC</option>
+                        <option value="hibrido" @selected(old('fuel_type') === 'hibrido')>Híbrido</option>
+                        <option value="electrico" @selected(old('fuel_type') === 'electrico')>Eléctrico</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label for="photo" class="form-label">Fotografía del vehículo (opcional)</label>
+                    <input id="photo" name="photo" type="file" class="form-control" accept="image/*">
+                    <div class="form-text">Sube una fotografía del vehículo para su ficha técnica (PNG, JPG, máx 5MB).</div>
                 </div>
                 <div class="col-12">
                     <label for="notes" class="form-label">Notas</label>

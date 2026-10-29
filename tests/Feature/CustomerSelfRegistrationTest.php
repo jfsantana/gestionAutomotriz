@@ -7,8 +7,10 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
@@ -204,5 +206,46 @@ class CustomerSelfRegistrationTest extends TestCase
             ->assertSessionHasErrors('vehicle_limit');
 
         $this->assertSame(3, $customer->fresh()->vehicles()->count());
+    }
+
+    public function test_orphan_customer_can_register_a_vehicle_with_a_photo(): void
+    {
+        Storage::fake('public');
+
+        $customer = Customer::create([
+            'full_name' => 'Propietario Independiente',
+            'email' => 'propietario@example.test',
+            'customer_type' => 'individual',
+            'fleet_trial_started_at' => now(),
+        ]);
+        $user = User::create([
+            'name' => $customer->full_name,
+            'username' => 'propietario',
+            'email' => $customer->email,
+            'password' => 'secure-password',
+            'role' => 'customer',
+            'customer_id' => $customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+        $user->markEmailAsVerified();
+
+        $this->actingAs($user)
+            ->post(route('portal.vehicles.store'), [
+                'plate' => 'ORP010',
+                'vehicle_type' => 'carro',
+                'make' => 'Toyota',
+                'model' => 'Corolla',
+                'current_mileage' => 100,
+                'fuel_type' => 'hibrido',
+                'photo' => UploadedFile::fake()->image('vehiculo.png'),
+            ])
+            ->assertRedirect();
+
+        $vehicle = $customer->vehicles()->firstOrFail();
+
+        $this->assertSame('hibrido', $vehicle->fuel_type);
+        $this->assertNotNull($vehicle->photo_path);
+        Storage::disk('public')->assertExists($vehicle->photo_path);
     }
 }
