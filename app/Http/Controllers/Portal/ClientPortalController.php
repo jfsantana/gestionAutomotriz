@@ -92,9 +92,7 @@ class ClientPortalController extends Controller
         $canAddVehicle = $customer->hasFleetPortalAccess()
             && ($customer->isFleetPremiumActive()
                 || $totalVehiclesCount < ($customer->vehicle_limit ?? 3));
-        $fleetPayment = $hidden_vehicles_count > 0
-            ? $customer->payments()->first()
-            : null;
+        $fleetPayment = $customer->payments()->first();
 
         return view('portal.vehicles.index', compact(
             'customer',
@@ -425,8 +423,10 @@ class ClientPortalController extends Controller
     {
         $user = $request->user();
         $customer = $user->customer;
+        $fleetPayment = $customer?->payments()->first();
+        $hidden_vehicles_count = 0;
 
-        return view('portal.account.index', compact('user', 'customer'));
+        return view('portal.account.index', compact('user', 'customer', 'fleetPayment', 'hidden_vehicles_count'));
     }
 
     public function updateAccount(Request $request): RedirectResponse

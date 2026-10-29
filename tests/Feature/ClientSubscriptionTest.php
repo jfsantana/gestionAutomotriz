@@ -531,10 +531,31 @@ class ClientSubscriptionTest extends TestCase
         ]);
     }
 
-    public function test_customer_cannot_request_upgrade_within_trial_when_at_or_below_the_vehicle_limit(): void
+    public function test_customer_can_request_upgrade_within_trial_when_at_or_below_the_vehicle_limit(): void
     {
+        Mail::fake();
         [$customer, $user] = $this->createCustomerAndPortalUser();
         $this->createVehicles($customer, ['carro']);
+        $this->createSuperAdmin();
+
+        $response = $this->from(route('portal.vehicles.index'))
+            ->actingAs($user)
+            ->post(route('portal.customers.upgrade-to-fleet', $customer), ['billing_cycle' => 'monthly']);
+
+        $response->assertRedirect(route('portal.vehicles.index'))
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('pagos_clientes', [
+            'customer_id' => $customer->id,
+            'vehicle_count' => 1,
+            'amount' => '3.00',
+            'status' => 'requested',
+        ]);
+        Mail::assertSentTimes(ClientFleetPaymentRequestedMail::class, 2);
+    }
+
+    public function test_customer_cannot_request_upgrade_without_vehicles(): void
+    {
+        [$customer, $user] = $this->createCustomerAndPortalUser();
 
         $response = $this->from(route('portal.vehicles.index'))
             ->actingAs($user)
@@ -543,6 +564,49 @@ class ClientSubscriptionTest extends TestCase
         $response->assertRedirect(route('portal.vehicles.index'))
             ->assertSessionHasErrors('vehicles');
         $this->assertDatabaseCount('pagos_clientes', 0);
+    }
+
+    public function test_customer_can_find_the_upgrade_request_form_in_my_vehicles_without_hidden_vehicles(): void
+    {
+        [$customer, $user] = $this->createCustomerAndPortalUser();
+        $this->createVehicles($customer, ['carro']);
+
+        $response = $this->actingAs($user)->get(route('portal.vehicles.index'));
+
+        $response->assertOk()
+            ->assertSee('Mejora tu plan')
+            ->assertSee('Registrar solicitud de pago')
+            ->assertSee('Contactar a AutoBitácora')
+            ->assertSee(route('portal.customers.upgrade-to-fleet', $customer), false);
+    }
+
+    public function test_customer_can_find_the_upgrade_request_form_in_the_account_page(): void
+    {
+        [$customer, $user] = $this->createCustomerAndPortalUser();
+        $this->createVehicles($customer, ['carro']);
+
+        $response = $this->actingAs($user)->get(route('portal.account'));
+
+        $response->assertOk()
+            ->assertSee('Mejora tu plan')
+            ->assertSee('Registrar solicitud de pago')
+            ->assertSee('Contactar a AutoBitácora')
+            ->assertSee(route('portal.customers.upgrade-to-fleet', $customer), false);
+    }
+
+    public function test_premium_customer_does_not_see_the_upgrade_request_form_in_the_account_page(): void
+    {
+        [$customer, $user] = $this->createCustomerAndPortalUser();
+        $customer->update([
+            'is_fleet_premium' => true,
+            'vehicle_limit' => null,
+            'fleet_expires_at' => now()->addMonth(),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('portal.account'));
+
+        $response->assertOk()
+            ->assertDontSee('Registrar solicitud de pago');
     }
 
     public function test_customer_must_submit_a_supported_billing_cycle(): void

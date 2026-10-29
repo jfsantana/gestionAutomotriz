@@ -87,6 +87,12 @@
         </div>
     </div>
 
+    @if($customer && ! $customer->isFleetPremiumActive())
+        <div class="col-12">
+            @include('portal.vehicles._upgrade_card')
+        </div>
+    @endif
+
     <div class="col-12">
         <div class="card border-warning shadow-sm">
             <div class="card-header bg-warning-subtle py-2">

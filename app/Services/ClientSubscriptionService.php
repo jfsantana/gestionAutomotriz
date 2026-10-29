@@ -26,16 +26,10 @@ class ClientSubscriptionService
             }
 
             $vehicles = $customer->vehicles()->lockForUpdate()->get(['id', 'vehicle_type']);
-            $vehicleLimit = $customer->vehicle_limit ?? 3;
 
-            $trialExpired = $customer->fleet_trial_started_at !== null
-                && ! $customer->hasFleetTrialActive();
-
-            if ($vehicles->isEmpty() || ($vehicles->count() <= $vehicleLimit && ! $trialExpired)) {
+            if ($vehicles->isEmpty()) {
                 throw ValidationException::withMessages([
-                    'vehicles' => $trialExpired
-                        ? 'El cliente necesita al menos un vehículo activo para solicitar el plan.'
-                        : "El cliente debe superar el límite actual de {$vehicleLimit} vehículos para solicitar el plan.",
+                    'vehicles' => 'El cliente necesita al menos un vehículo activo para solicitar el plan.',
                 ]);
             }
 

@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
             && $user->company_id !== null
             && (int) $user->company_id === (int) $order->company_id);
 
-        View::composer(['layouts.app', 'components.sidebar'], function ($view) {
+        View::composer(['layouts.app', 'components.sidebar', 'portal.layouts.client'], function ($view) {
             $policy = PlatformPolicy::activePolicy();
             $acceptance = null;
             $globalCompanySubscription = null;

@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Domain\Companies\Models\Customer;
+use App\Domain\Users\Models\PlatformPolicy;
+use App\Domain\Users\Models\UserPolicyAcceptance;
 use App\Models\User;
+use Database\Seeders\PlatformPolicySeeder;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -356,5 +359,42 @@ class CustomerSelfRegistrationTest extends TestCase
             'plate' => 'ORP030',
             'deleted_at' => null,
         ]);
+    }
+
+    public function test_orphan_customer_can_see_the_platform_policies_link_in_the_portal_menu(): void
+    {
+        $this->seed(PlatformPolicySeeder::class);
+
+        $customer = Customer::create([
+            'full_name' => 'Propietario Independiente',
+            'email' => 'propietario@example.test',
+            'customer_type' => 'individual',
+            'fleet_trial_started_at' => now(),
+        ]);
+        $user = User::create([
+            'name' => $customer->full_name,
+            'username' => 'propietario',
+            'email' => $customer->email,
+            'password' => 'secure-password',
+            'role' => 'customer',
+            'customer_id' => $customer->id,
+            'is_active' => true,
+            'account_status' => 'ACTIVE',
+        ]);
+        $user->markEmailAsVerified();
+
+        $policy = PlatformPolicy::activePolicy();
+        UserPolicyAcceptance::create([
+            'user_id' => $user->id,
+            'platform_policy_id' => $policy->id,
+            'policy_version' => $policy->version,
+            'accepted_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('portal.vehicles.index'))
+            ->assertOk()
+            ->assertSee('Políticas y Condiciones')
+            ->assertSee('viewAcceptedPolicyModal');
     }
 }

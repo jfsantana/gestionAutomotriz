@@ -143,6 +143,27 @@
                 </a>
             </nav>
 
+            {{-- ENLACE FIJO A LAS POLÍTICAS Y CONDICIONES ACEPTADAS --}}
+            @if(isset($currentPlatformPolicy) && $currentPlatformPolicy)
+                <div class="mt-4 pt-3 border-top px-2 text-center">
+                    <button
+                        type="button"
+                        class="btn btn-link p-0 text-decoration-none text-muted small d-flex align-items-center justify-content-center w-100"
+                        data-bs-toggle="modal"
+                        data-bs-target="#viewAcceptedPolicyModal"
+                        title="Ver Políticas de Uso y Condiciones aceptadas"
+                    >
+                        <x-section-icon name="policies" class="client-nav-icon" style="font-size: 1rem;" />
+                        <span style="font-size: 0.78rem;">Políticas y Condiciones</span>
+                    </button>
+                    @if(isset($userPolicyAcceptance) && $userPolicyAcceptance)
+                        <div class="text-muted" style="font-size: 0.68rem; margin-top: 2px;">
+                            v{{ $currentPlatformPolicy->version }} &bull; Aceptado el {{ $userPolicyAcceptance->accepted_at?->format('d/m/Y') }}
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <div class="mt-4 pt-3 border-top px-2 text-muted" style="font-size: 0.75rem;">
                 <p class="mb-1 fw-semibold text-dark">AutoBitacora SaaS</p>
                 <p class="mb-0">Entorno privado y confidencial para propietarios.</p>
@@ -177,6 +198,9 @@
 
     <!-- Bootstrap 5 JS Bundle CDN -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    @include('layouts._policy_modal')
+
     @stack('scripts')
 </body>
 </html>
