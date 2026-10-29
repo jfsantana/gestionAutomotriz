@@ -176,9 +176,11 @@ class ClientPortalController extends Controller
                 ]);
             }
 
+            // El vehículo registrado por el cliente desde su portal queda como particular
+            // (sin taller asignado); el taller del cliente no debe verlo ni gestionarlo.
             return Vehicle::create([
                 ...$data,
-                'company_id' => $lockedCustomer->company_id,
+                'company_id' => null,
                 'customer_id' => $lockedCustomer->id,
             ]);
         });

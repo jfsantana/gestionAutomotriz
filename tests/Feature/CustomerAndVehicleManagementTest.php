@@ -9,6 +9,8 @@ use App\Domain\Companies\Models\Customer;
 use App\Domain\Vehicles\Models\Vehicle;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
 class CustomerAndVehicleManagementTest extends TestCase
@@ -111,6 +113,64 @@ class CustomerAndVehicleManagementTest extends TestCase
         $this->assertEquals($this->companyA->id, $created->company_id);
 
         $response->assertRedirect(route('customers.show', $created));
+    }
+
+    /**
+     * Regresión: crear un cliente habilitando el portal debe enviar la invitación
+     * y redirigir a la ficha del cliente sin error 500.
+     */
+    public function test_company_admin_creates_customer_with_portal_invitation_and_is_redirected_to_show(): void
+    {
+        $response = $this->actingAs($this->adminA)->post('/customers', [
+            'full_name' => 'Cliente Invitado Portal',
+            'email' => 'invitado.portal@test.do',
+            'customer_type' => 'individual',
+            'enable_portal' => '1',
+        ]);
+
+        $created = Customer::where('email', 'invitado.portal@test.do')->first();
+        $this->assertNotNull($created);
+        $this->assertEquals($this->companyA->id, $created->company_id);
+
+        $response->assertRedirect(route('customers.show', $created));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('users', [
+            'customer_id' => $created->id,
+            'email' => 'invitado.portal@test.do',
+            'role' => 'customer',
+        ]);
+        $this->assertDatabaseHas('client_invitations', ['customer_id' => $created->id]);
+    }
+
+    /**
+     * Regresión: si el transporte de correo falla al enviar la invitación, el cliente
+     * y su usuario deben quedar registrados y la respuesta no debe ser un error 500.
+     */
+    public function test_company_admin_creates_customer_with_portal_invitation_even_if_mail_transport_fails(): void
+    {
+        Mail::shouldReceive('to')->once()->andReturnSelf();
+        Mail::shouldReceive('send')->once()->andThrow(new TransportException('SMTP unavailable'));
+
+        $response = $this->actingAs($this->adminA)->post('/customers', [
+            'full_name' => 'Cliente Invitado Sin Correo',
+            'email' => 'sin.correo@test.do',
+            'customer_type' => 'individual',
+            'enable_portal' => '1',
+        ]);
+
+        $created = Customer::where('email', 'sin.correo@test.do')->first();
+        $this->assertNotNull($created);
+
+        $response->assertRedirect(route('customers.show', $created));
+        $response->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', [
+            'customer_id' => $created->id,
+            'email' => 'sin.correo@test.do',
+            'role' => 'customer',
+        ]);
+        $this->assertDatabaseHas('client_invitations', ['customer_id' => $created->id]);
     }
 
     /**

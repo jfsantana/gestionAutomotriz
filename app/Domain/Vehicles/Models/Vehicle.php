@@ -70,14 +70,20 @@ class Vehicle extends Model
     protected static function booted(): void
     {
         static::creating(function (Vehicle $vehicle) {
-            if ($vehicle->customer_id) {
-                $customer = $vehicle->customer ?: Customer::find($vehicle->customer_id);
-                if (! $customer) {
-                    throw new \InvalidArgumentException('El vehículo debe tener un cliente asociado válido.');
-                }
-                $vehicle->company_id = $customer->company_id;
-            } else {
+            if (! $vehicle->customer_id) {
                 throw new \InvalidArgumentException('Todo vehículo debe tener obligatoriamente un cliente asociado.');
+            }
+
+            $customer = $vehicle->customer ?: Customer::find($vehicle->customer_id);
+            if (! $customer) {
+                throw new \InvalidArgumentException('El vehículo debe tener un cliente asociado válido.');
+            }
+
+            // Si no se indicó un taller explícito, el vehículo hereda el taller actual del
+            // cliente. Un company_id explícito (incluso null) se respeta: cada vehículo
+            // puede quedar asignado a un taller distinto o como particular del cliente.
+            if (! array_key_exists('company_id', $vehicle->getAttributes())) {
+                $vehicle->company_id = $customer->company_id;
             }
         });
 
@@ -86,15 +92,11 @@ class Vehicle extends Model
                 throw ValidationException::withMessages(['customer_id' => 'No se puede reasignar un vehículo a otro cliente. Debe darse de baja antes de un nuevo registro.']);
             }
             $customerId = $vehicle->customer_id ?: $vehicle->getOriginal('customer_id');
-            if ($customerId) {
-                $customer = Customer::find($customerId);
-                if (! $customer) {
-                    throw new \InvalidArgumentException('El vehículo debe tener un cliente asociado válido.');
-                }
-                $vehicle->company_id = $customer->company_id;
-            } else {
-                throw new \InvalidArgumentException('Todo vehículo debe tener obligatoriamente un cliente asociado.');
+            if (! $customerId || ! Customer::find($customerId)) {
+                throw new \InvalidArgumentException('El vehículo debe tener un cliente asociado válido.');
             }
+            // El taller del vehículo (company_id) es independiente del taller actual del cliente:
+            // un cliente puede tener vehículos asignados a talleres distintos.
         });
     }
 
@@ -122,12 +124,17 @@ class Vehicle extends Model
         return $this->hasMany(MaintenanceOrder::class, 'vehicle_id');
     }
 
+    /**
+     * Vehículos cuyo taller asignado coincide con el taller actual del cliente.
+     * Los vehículos particulares (company_id null) siempre son consistentes.
+     */
     #[Scope]
     protected function withConsistentOwnership(Builder $query): void
     {
         $query->whereHas('customer', fn (Builder $customer) => $customer
             ->where(function (Builder $company) {
                 $company->whereColumn('customers.company_id', 'vehicles.company_id')
+                    ->orWhereNull('vehicles.company_id')
                     ->orWhere(function (Builder $bothNull): void {
                         $bothNull->whereNull('customers.company_id')
                             ->whereNull('vehicles.company_id');

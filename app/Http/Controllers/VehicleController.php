@@ -69,14 +69,17 @@ class VehicleController extends Controller
         $customer = Customer::findOrFail($data['customer_id']);
         $this->authorizeCustomerAccess($currentUser, $customer);
 
-        // Validación estricta: La empresa del vehículo DEBE ser siempre la misma del cliente
-        $companyId = $customer->company_id;
+        // El vehículo queda asignado al taller que lo registra (no necesariamente
+        // el taller actual del cliente, que puede tener vehículos en varios talleres).
+        $companyId = $currentUser->role === 'company_admin'
+            ? $currentUser->company_id
+            : ($data['company_id'] ?? $customer->company_id);
         $data['company_id'] = $companyId;
         $plate = strtoupper(trim($data['plate']));
         $data['plate'] = $plate;
 
         // Regla de privacidad: Verificar si la placa ya se encuentra asignada
-        $existingVehicle = Vehicle::whereHas('customer', fn ($query) => $query->where('company_id', $companyId))
+        $existingVehicle = Vehicle::where('company_id', $companyId)
             ->where('plate', $plate)
             ->first();
 
@@ -106,7 +109,8 @@ class VehicleController extends Controller
     {
         $this->authorizeVehicleAccess($request->user(), $vehicle);
 
-        $companyId = $request->user()->role === 'super_admin' ? null : $request->user()->company_id;
+        // El historial visible es el del taller asignado al vehículo (el super_admin lo ve todo)
+        $companyId = $request->user()->role === 'super_admin' ? null : $vehicle->company_id;
         $vehicle->load([
             'customer',
             'company',
@@ -145,18 +149,17 @@ class VehicleController extends Controller
 
         $data = $request->validated();
 
-        // Evitar manipulación de llaves foráneas en actualización
-        unset($data['customer_id']);
+        // Evitar manipulación de llaves foráneas en actualización: el taller asignado
+        // al vehículo (company_id) no cambia al editar; cada vehículo conserva su taller.
+        unset($data['customer_id'], $data['company_id']);
 
-        // Asegurar sin excepción que la empresa del vehículo coincida con la del cliente asociado
         $customer = $vehicle->customer ?: Customer::findOrFail($vehicle->customer_id);
-        $data['company_id'] = $customer->company_id;
 
         if ($request->hasFile('photo')) {
             if ($vehicle->photo_path && Storage::disk('public')->exists($vehicle->photo_path)) {
                 Storage::disk('public')->delete($vehicle->photo_path);
             }
-            $data['photo_path'] = $request->file('photo')->store('vehicles/'.$customer->company_id, 'public');
+            $data['photo_path'] = $request->file('photo')->store('vehicles/'.($vehicle->company_id ?? 'independientes'), 'public');
         }
 
         $vehicle->update($data);

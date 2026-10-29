@@ -193,6 +193,69 @@ class CustomerWorkshopRelationshipTest extends TestCase
         Mail::assertSent(CustomerWorkshopRelationshipEndedMail::class);
     }
 
+    public function test_workshop_cannot_see_the_personal_vehicle_the_customer_registered_on_his_own(): void
+    {
+        [$company, $admin] = $this->createWorkshop('Taller Principal', 'taller-principal');
+        [$customer, $client, $workshopVehicle] = $this->createCustomer($company);
+
+        // El cliente registra un segundo vehículo de manera particular desde su portal
+        $this->actingAs($client)
+            ->post(route('portal.vehicles.store'), [
+                'plate' => 'PRIVADO1',
+                'vehicle_type' => 'carro',
+                'make' => 'Honda',
+                'model' => 'Civic',
+                'current_mileage' => 50,
+            ])
+            ->assertRedirect();
+
+        $personalVehicle = Vehicle::where('plate', 'PRIVADO1')->sole();
+        $this->assertNull($personalVehicle->company_id);
+
+        // El taller no ve el vehículo particular en la ficha del cliente
+        $this->actingAs($admin)
+            ->get(route('customers.show', $customer))
+            ->assertOk()
+            ->assertSee('TEST123')
+            ->assertDontSee('PRIVADO1');
+
+        // El taller no ve el vehículo particular en el listado general de vehículos
+        $this->actingAs($admin)
+            ->get(route('vehicles.index'))
+            ->assertOk()
+            ->assertSee('TEST123')
+            ->assertDontSee('PRIVADO1');
+
+        // El taller no puede abrir la ficha del vehículo particular
+        $this->actingAs($admin)
+            ->get(route('vehicles.show', $personalVehicle))
+            ->assertNotFound();
+
+        // El taller no puede registrarle una orden de mantenimiento
+        $this->actingAs($admin)
+            ->post(route('maintenance-orders.store'), [
+                'customer_id' => $customer->id,
+                'vehicle_id' => $personalVehicle->id,
+                'service_name_snapshot' => 'Servicio no autorizado',
+                'maintenance_type' => 'preventive',
+                'service_date' => today()->toDateString(),
+                'current_mileage' => 60,
+                'status' => 'open',
+            ])
+            ->assertSessionHasErrors('vehicle_id');
+
+        $this->assertDatabaseMissing('maintenance_orders', [
+            'vehicle_id' => $personalVehicle->id,
+        ]);
+
+        // El cliente sí ve ambos vehículos en su portal
+        $this->actingAs($client)
+            ->get(route('portal.vehicles.index'))
+            ->assertOk()
+            ->assertSee('TEST123')
+            ->assertSee('PRIVADO1');
+    }
+
     /**
      * @return array{Company, User}
      */

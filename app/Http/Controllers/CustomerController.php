@@ -93,14 +93,23 @@ class CustomerController extends Controller
     {
         $this->authorizeCustomerAccess($request->user(), $customer);
 
-        $customer->load(['company', 'vehicles' => fn ($q) => $q->latest('id')]);
+        $currentUser = $request->user();
+
+        // El taller solo ve los vehículos que tiene asignados; los vehículos particulares
+        // del cliente o asignados a otros talleres no se muestran en su ficha.
+        $customer->load([
+            'company',
+            'vehicles' => fn ($q) => $q
+                ->when($currentUser->role !== 'super_admin', fn ($query) => $query->where('company_id', $currentUser->company_id))
+                ->latest('id'),
+        ]);
 
         $reminderService = app(MaintenanceReminderService::class);
         $vehicleReminders = [];
         $hasAlerts = false;
 
         foreach ($customer->vehicles as $veh) {
-            $rem = $reminderService->getVehicleReminder($veh, $customer->company_id);
+            $rem = $reminderService->getVehicleReminder($veh, $veh->company_id);
             if ($rem) {
                 $vehicleReminders[$veh->id] = $rem;
                 if (in_array($rem['evaluation']['status'], ['overdue', 'due_soon'], true)) {

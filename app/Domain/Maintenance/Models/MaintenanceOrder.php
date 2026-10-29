@@ -81,9 +81,8 @@ class MaintenanceOrder extends Model
 
             $customer = Customer::find($order->customer_id);
             $vehicle = Vehicle::find($order->vehicle_id);
-            if (! $customer || ! $vehicle || (int) $vehicle->customer_id !== (int) $customer->id
-                || $vehicle->company_id !== $customer->company_id) {
-                throw ValidationException::withMessages(['vehicle_id' => 'El vehículo debe pertenecer al cliente y tener la misma asociación de taller.']);
+            if (! $customer || ! $vehicle || (int) $vehicle->customer_id !== (int) $customer->id) {
+                throw ValidationException::withMessages(['vehicle_id' => 'El vehículo debe pertenecer al cliente.']);
             }
 
             if ($order->origin === 'customer') {
@@ -103,25 +102,27 @@ class MaintenanceOrder extends Model
                 return;
             }
 
-            if (! $customer->company_id) {
-                throw ValidationException::withMessages(['customer_id' => 'El cliente debe aceptar la asociación a un taller antes de registrar una orden de taller.']);
+            // La orden de taller pertenece al taller asignado al vehículo, que puede
+            // diferir del taller actual del cliente (cada vehículo puede tener su taller).
+            if (! $vehicle->company_id) {
+                throw ValidationException::withMessages(['vehicle_id' => 'El vehículo debe tener un taller asignado antes de registrar una orden de taller.']);
             }
 
-            $order->company_id = $customer->company_id;
+            $order->company_id = $vehicle->company_id;
 
-            if ($order->service_id && (! $customer->company_id || ! Service::whereKey($order->service_id)->where('company_id', $customer->company_id)->exists())) {
-                throw ValidationException::withMessages(['service_id' => 'El servicio debe pertenecer a la empresa del cliente.']);
+            if ($order->service_id && ! Service::whereKey($order->service_id)->where('company_id', $vehicle->company_id)->exists()) {
+                throw ValidationException::withMessages(['service_id' => 'El servicio debe pertenecer al taller asignado al vehículo.']);
             }
-            if ($order->mechanic_id && (! $customer->company_id || ! User::whereKey($order->mechanic_id)->where('company_id', $customer->company_id)->where('role', 'mechanic')->exists())) {
-                throw ValidationException::withMessages(['mechanic_id' => 'El mecánico debe pertenecer a la empresa del cliente.']);
+            if ($order->mechanic_id && ! User::whereKey($order->mechanic_id)->where('company_id', $vehicle->company_id)->where('role', 'mechanic')->exists()) {
+                throw ValidationException::withMessages(['mechanic_id' => 'El mecánico debe pertenecer al taller asignado al vehículo.']);
             }
             if ($order->registered_by_user_id && ! User::whereKey($order->registered_by_user_id)
                 ->where(fn (Builder $query) => $query
                     ->where('role', 'super_admin')
                     ->orWhere(fn (Builder $company) => $company
-                        ->where('company_id', $customer->company_id)
+                        ->where('company_id', $vehicle->company_id)
                         ->whereIn('role', ['company_admin', 'mechanic'])))->exists()) {
-                throw ValidationException::withMessages(['registered_by_user_id' => 'El usuario que registra la orden no pertenece a la empresa del cliente.']);
+                throw ValidationException::withMessages(['registered_by_user_id' => 'El usuario que registra la orden no pertenece al taller asignado al vehículo.']);
             }
         });
     }

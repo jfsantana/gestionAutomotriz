@@ -100,9 +100,11 @@ class MaintenanceOrderController extends Controller
             return back()->withErrors(['vehicle_id' => 'El vehículo seleccionado no pertenece al cliente especificado.'])->withInput();
         }
 
-        $companyId = $customer->company_id;
+        // La orden pertenece al taller asignado al vehículo, que puede diferir
+        // del taller actual del cliente (cada vehículo puede tener su propio taller).
+        $companyId = $vehicle->company_id;
 
-        if (! $companyId || (int) $vehicle->company_id !== (int) $companyId
+        if (! $companyId
             || ($currentUser->role !== 'super_admin' && (int) $companyId !== (int) $currentUser->company_id)) {
             abort(403, 'El vehículo pertenece a otra empresa.');
         }

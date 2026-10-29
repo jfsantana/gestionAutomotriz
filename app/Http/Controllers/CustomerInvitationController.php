@@ -9,9 +9,11 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class CustomerInvitationController extends Controller
 {
@@ -89,7 +91,20 @@ class CustomerInvitationController extends Controller
         ]);
 
         // 4. Enviar correo SMTP
-        Mail::to($customer->email)->send(new ClientPortalInvitationMail($customer, $company, $plainToken));
+        try {
+            Mail::to($customer->email)->send(new ClientPortalInvitationMail($customer, $company, $plainToken));
+        } catch (TransportExceptionInterface $exception) {
+            Log::error('No se pudo enviar el correo de invitación al portal del cliente.', [
+                'customer_id' => $customer->id,
+                'user_id' => $user->id,
+                'exception_class' => $exception::class,
+            ]);
+
+            return back()->with(
+                'error',
+                "La invitación quedó registrada para {$customer->email}, pero no se pudo enviar el correo. Revisa la configuración de correo o reenvía la invitación más tarde."
+            );
+        }
 
         return back()->with('success', "Invitación enviada exitosamente a {$customer->email}. El cliente tiene 48 horas para activar su cuenta.");
     }

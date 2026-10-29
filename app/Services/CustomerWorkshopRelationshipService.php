@@ -107,7 +107,8 @@ class CustomerWorkshopRelationshipService
                 ]);
             }
 
-            $vehicles = Vehicle::withTrashed()
+            // Solo los vehículos activos se asignan al taller; los dados de baja conservan su historial de asignación
+            $vehicles = Vehicle::query()
                 ->where('customer_id', $customer->id)
                 ->lockForUpdate()
                 ->get(['id', 'plate']);
@@ -129,7 +130,7 @@ class CustomerWorkshopRelationshipService
             }
 
             $customer->update(['company_id' => $company->id]);
-            Vehicle::withTrashed()->where('customer_id', $customer->id)->update(['company_id' => $company->id]);
+            Vehicle::where('customer_id', $customer->id)->update(['company_id' => $company->id]);
             User::query()->where('customer_id', $customer->id)->where('role', 'customer')
                 ->update(['company_id' => $company->id]);
 
